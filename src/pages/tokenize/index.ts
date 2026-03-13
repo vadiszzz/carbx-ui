@@ -1,1 +1,1 @@
-export { TokenizePage } from './ui/tokenize-page'
+export { TokenizePage } from './tokenize-page'
