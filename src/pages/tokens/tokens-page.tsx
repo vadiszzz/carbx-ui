@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react'
 import axios from 'axios'
 import { ExternalLink, Loader2 } from 'lucide-react'
+import bs58 from 'bs58'
+import { usePrivy } from '@privy-io/react-auth'
 import { useQuery } from '@tanstack/react-query'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { PublicKey, Transaction } from '@solana/web3.js'
+import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
+import { Connection, PublicKey, Transaction } from '@solana/web3.js'
 import { qist_puro } from 'qist-puro-sdk'
+import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { createRetire } from '@/shared/api/retire/requests'
 import {
   RETIRE_BENEFICIARY_TYPES,
@@ -141,6 +143,11 @@ const SOLSCAN_CLUSTER = RPC_URL.includes('devnet')
   : RPC_URL.includes('testnet')
     ? 'testnet'
     : null
+const SOLANA_CHAIN = RPC_URL.includes('devnet')
+  ? 'solana:devnet'
+  : RPC_URL.includes('testnet')
+    ? 'solana:testnet'
+    : 'solana:mainnet'
 
 async function getVintageTokens(ownerAddress: string): Promise<VintageToken[]> {
   const body = {
@@ -232,10 +239,13 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function TokensPage() {
-  const { connection } = useConnection()
-  const { connected, publicKey, sendTransaction } = useWallet()
+  const { connectWallet } = usePrivy()
+  const { connected, connectedWallet, walletAddress } = usePrivyAuth()
+  const { signAndSendTransaction } = useSignAndSendTransaction()
+  const connection = new Connection(RPC_URL, 'confirmed')
 
-  const ownerAddress = publicKey?.toBase58() ?? ''
+  const ownerAddress = walletAddress
+  const publicKey = ownerAddress ? new PublicKey(ownerAddress) : null
 
   const vintageTokensQuery = useQuery<VintageToken[], Error>({
     queryKey: ['tokens', 'vintage', ownerAddress],
@@ -294,7 +304,7 @@ export function TokensPage() {
         })
         .filter((item): item is VintageRegistryMeta => item !== null)
     },
-    enabled: connected,
+    enabled: Boolean(ownerAddress),
   })
 
   const [burnToken, setBurnToken] = useState<VintageToken | null>(null)
@@ -399,14 +409,29 @@ export function TokensPage() {
 
       const { context, value } = await connection.getLatestBlockhashAndContext()
       transaction.recentBlockhash = value.blockhash
+      if (burnResult.signers.length > 0) {
+        transaction.partialSign(...burnResult.signers)
+      }
 
       updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
 
-      const signature = await sendTransaction(transaction, connection, {
-        signers: burnResult.signers,
-        skipPreflight: true,
-        minContextSlot: context.slot,
+      if (!connectedWallet) {
+        throw new Error('No connected Privy wallet found')
+      }
+
+      const signatureResult = await signAndSendTransaction({
+        transaction: transaction.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false,
+        }),
+        wallet: connectedWallet,
+        chain: SOLANA_CHAIN,
+        options: {
+          minContextSlot: context.slot,
+          skipPreflight: true,
+        },
       })
+      const signature = bs58.encode(signatureResult.signature)
 
       await connection.confirmTransaction(
         {
@@ -518,14 +543,29 @@ export function TokensPage() {
 
       const { context, value } = await connection.getLatestBlockhashAndContext()
       transaction.recentBlockhash = value.blockhash
+      if (retireResult.signers.length > 0) {
+        transaction.partialSign(...retireResult.signers)
+      }
 
       updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
 
-      const signature = await sendTransaction(transaction, connection, {
-        signers: retireResult.signers,
-        skipPreflight: true,
-        minContextSlot: context.slot,
+      if (!connectedWallet) {
+        throw new Error('No connected Privy wallet found')
+      }
+
+      const signatureResult = await signAndSendTransaction({
+        transaction: transaction.serialize({
+          requireAllSignatures: false,
+          verifySignatures: false,
+        }),
+        wallet: connectedWallet,
+        chain: SOLANA_CHAIN,
+        options: {
+          minContextSlot: context.slot,
+          skipPreflight: true,
+        },
       })
+      const signature = bs58.encode(signatureResult.signature)
 
       await connection.confirmTransaction(
         {
@@ -574,11 +614,11 @@ export function TokensPage() {
         <CardContent className="grid gap-3">
           {!connected ? (
             <div className="grid gap-2">
-              <div className="wallet-connect">
-                <WalletMultiButton />
-              </div>
+              <Button onClick={() => connectWallet({ walletChainType: 'solana-only' })}>
+                Connect wallet
+              </Button>
               <p className="m-0 text-sm text-muted-foreground">
-                Connect wallet to load tokens.
+                Connect a Solana wallet through Privy to load tokens.
               </p>
             </div>
           ) : null}

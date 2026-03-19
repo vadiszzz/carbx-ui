@@ -1,42 +1,35 @@
-import { useState } from "react";
-import { Copy, Loader2 } from "lucide-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useWalletAuth } from "@/shared/api/auth/hooks/use-wallet-auth";
-import { usePuroAccountQuery } from "@/shared/api/puro/queries/use-puro-account-query";
-import { Button } from "@/shared/ui/button";
+import { useState } from 'react'
+import { Copy, Loader2, Wallet } from 'lucide-react'
+import { usePrivy } from '@privy-io/react-auth'
+import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
+import { usePuroAccountQuery } from '@/shared/api/puro/queries/use-puro-account-query'
+import { Button } from '@/shared/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/shared/ui/card";
+} from '@/shared/ui/card'
 
 export function TokenizePage() {
-  const [copied, setCopied] = useState(false);
-  const {
-    connected,
-    signMessage,
-    hasBackendSession,
-    isAuthorized,
-    isAuthLoading,
-    authError,
-    signInWithWallet,
-  } = useWalletAuth();
-  const puroAccountQuery = usePuroAccountQuery();
+  const [copied, setCopied] = useState(false)
+  const { authenticated, login, linkWallet } = usePrivy()
+  const { hasSolanaWallet } = usePrivyAuth()
+  const puroAccountQuery = usePuroAccountQuery()
 
-  const puroAccountNumber = puroAccountQuery.data?.puroAccountNumber ?? "";
-  const hasPuroAccount = Boolean(puroAccountNumber);
+  const puroAccountNumber = puroAccountQuery.data?.puroAccountNumber ?? ''
+  const hasPuroAccount = Boolean(puroAccountNumber)
 
   async function handleGetPuroAccount() {
-    await puroAccountQuery.refetch();
+    await puroAccountQuery.refetch()
   }
 
   async function handleCopy() {
-    if (!puroAccountNumber) return;
-    await navigator.clipboard.writeText(puroAccountNumber);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    if (!puroAccountNumber) return
+    await navigator.clipboard.writeText(puroAccountNumber)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1200)
   }
 
   return (
@@ -49,42 +42,31 @@ export function TokenizePage() {
         <CardHeader>
           <CardTitle>Get Puro account</CardTitle>
           <CardDescription>
-            Connect wallet, sign the message, then click Get puro account to
-            receive a Puro destination account.
+            Log in once with Privy. If you use email or social first, link a
+            Solana wallet before requesting a Puro destination account.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
           <div className="flex flex-wrap gap-2">
-            {!connected ? (
-              <div className="wallet-connect">
-                <WalletMultiButton />
-              </div>
-            ) : null}
-
-            {connected && !hasBackendSession ? (
-              <Button
-                disabled={!signMessage || isAuthLoading}
-                onClick={() => void signInWithWallet()}
-                variant="default"
-              >
-                {isAuthLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Signing...
-                  </>
-                ) : isAuthorized ? (
-                  "Signed in"
-                ) : (
-                  "Authorize with signature"
-                )}
+            {!authenticated ? (
+              <Button onClick={() => login()}>
+                Continue with Login
               </Button>
             ) : null}
 
-            {!hasPuroAccount ? (
+            {authenticated && !hasSolanaWallet ? (
               <Button
-                disabled={
-                  !connected || !hasBackendSession || puroAccountQuery.isFetching
-                }
+                onClick={() => linkWallet({ walletChainType: 'solana-only' })}
+                variant="outline"
+              >
+                <Wallet className="size-4" />
+                Link Solana wallet
+              </Button>
+            ) : null}
+
+            {authenticated && !hasPuroAccount ? (
+              <Button
+                disabled={puroAccountQuery.isFetching}
                 onClick={() => void handleGetPuroAccount()}
               >
                 Get puro account
@@ -92,24 +74,14 @@ export function TokenizePage() {
             ) : null}
           </div>
 
-          {!connected ? (
+          {!authenticated ? (
             <p className="m-0 text-sm text-muted-foreground">
-              Connect wallet to continue.
+              Open Login and choose wallet, email, or Google.
             </p>
           ) : null}
-          {connected && !signMessage ? (
-            <p className="m-0 text-sm text-destructive">
-              The selected wallet does not support message signing.
-            </p>
-          ) : null}
-          {connected && !hasBackendSession && signMessage ? (
+          {authenticated && !hasSolanaWallet ? (
             <p className="m-0 text-sm text-muted-foreground">
-              Authorize with signature to unlock Get puro account.
-            </p>
-          ) : null}
-          {authError ? (
-            <p className="m-0 text-sm text-destructive">
-              Signature verification failed. Please try again.
+              Optional: link a Solana wallet to keep wallet-based flows available in the app.
             </p>
           ) : null}
 
@@ -134,7 +106,7 @@ export function TokenizePage() {
                   variant="ghost"
                 >
                   <Copy className="size-3.5" />
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? 'Copied' : 'Copy'}
                 </Button>
               </div>
               <p className="mt-2 m-0 text-xs text-muted-foreground">
@@ -151,5 +123,5 @@ export function TokenizePage() {
         </CardContent>
       </Card>
     </section>
-  );
+  )
 }

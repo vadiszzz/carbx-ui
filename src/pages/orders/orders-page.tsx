@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, Loader2 } from 'lucide-react'
-import { useWalletAuth } from '@/shared/api/auth/hooks/use-wallet-auth'
+import { ExternalLink, Loader2, Wallet } from 'lucide-react'
+import { usePrivy } from '@privy-io/react-auth'
+import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { useGroupedOrdersQuery } from '@/shared/api/orders/queries/use-grouped-orders-query'
 import type { Order } from '@/shared/api/orders/types'
 import { Button } from '@/shared/ui/button'
@@ -63,15 +64,9 @@ function getSolscanTxUrl(signature: string) {
 
 export function OrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const {
-    connected,
-    signMessage,
-    hasBackendSession,
-    isAuthLoading,
-    authError,
-    signInWithWallet,
-  } = useWalletAuth()
-  const groupedOrdersQuery = useGroupedOrdersQuery({ enabled: hasBackendSession })
+  const { authenticated, login, linkWallet } = usePrivy()
+  const { hasSolanaWallet } = usePrivyAuth()
+  const groupedOrdersQuery = useGroupedOrdersQuery({ enabled: authenticated })
 
   const orderRows = useMemo<FlatOrderRow[]>(() => {
     const groupedOrders = groupedOrdersQuery.data ?? []
@@ -192,44 +187,37 @@ export function OrdersPage() {
             <CardTitle>List of your orders</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {!hasBackendSession ? (
+            {!authenticated ? (
               <div className="grid gap-2 rounded-lg border border-dashed p-4">
                 <p className="m-0 text-sm text-muted-foreground">
-                  Sign with wallet to load your orders.
+                  Use the unified Login flow powered by Privy.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    disabled={!connected || !signMessage || isAuthLoading}
-                    onClick={() => void signInWithWallet()}
-                  >
-                    {isAuthLoading ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        Signing...
-                      </>
-                    ) : (
-                      'Sign in with wallet'
-                    )}
+                  <Button onClick={() => login()}>
+                    Open Login
                   </Button>
                 </div>
-                {!connected ? (
-                  <p className="m-0 text-sm text-muted-foreground">
-                    Connect wallet in the header first.
-                  </p>
-                ) : null}
-                {connected && !signMessage ? (
-                  <p className="m-0 text-sm text-destructive">
-                    The selected wallet does not support message signing.
-                  </p>
-                ) : null}
-                {authError ? (
-                  <p className="m-0 text-sm text-destructive">
-                    Signature verification failed. Please try again.
-                  </p>
-                ) : null}
+                <p className="m-0 text-sm text-muted-foreground">
+                  Click Login and choose wallet, email, or Google.
+                </p>
               </div>
             ) : (
-              <div className="flex justify-end">
+              <>
+                {!hasSolanaWallet ? (
+                  <p className="m-0 text-sm text-muted-foreground">
+                    Optional: link a Solana wallet to keep wallet-based flows available in the app.
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {!hasSolanaWallet ? (
+                    <Button
+                      onClick={() => linkWallet({ walletChainType: 'solana-only' })}
+                      variant="outline"
+                    >
+                      <Wallet className="size-4" />
+                      Link Solana wallet
+                    </Button>
+                  ) : null}
                 <Button
                   disabled={groupedOrdersQuery.isFetching}
                   onClick={() => void groupedOrdersQuery.refetch()}
@@ -244,7 +232,8 @@ export function OrdersPage() {
                     'Refresh'
                   )}
                 </Button>
-              </div>
+                </div>
+              </>
             )}
 
             <Table>
@@ -257,7 +246,7 @@ export function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hasBackendSession && groupedOrdersQuery.isLoading ? (
+                {authenticated && groupedOrdersQuery.isLoading ? (
                   <TableRow>
                     <TableCell className="text-muted-foreground" colSpan={4}>
                       Loading orders...
@@ -265,7 +254,7 @@ export function OrdersPage() {
                   </TableRow>
                 ) : null}
 
-                {hasBackendSession && groupedOrdersQuery.isError ? (
+                {authenticated && groupedOrdersQuery.isError ? (
                   <TableRow>
                     <TableCell className="text-destructive" colSpan={4}>
                       Failed to load orders. Try refresh.
@@ -273,7 +262,7 @@ export function OrdersPage() {
                   </TableRow>
                 ) : null}
 
-                {hasBackendSession &&
+                {authenticated &&
                 !groupedOrdersQuery.isLoading &&
                 !groupedOrdersQuery.isError &&
                 orderRows.length === 0 ? (

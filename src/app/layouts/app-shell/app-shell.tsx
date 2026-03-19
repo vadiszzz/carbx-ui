@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { useWallet } from '@solana/wallet-adapter-react'
+import { usePrivy } from '@privy-io/react-auth'
 import { useQueryClient } from '@tanstack/react-query'
 import { ROUTE_PATHS } from '@/app/router/route-paths'
-import { useLogoutMutation } from '@/shared/api/auth/queries/use-logout-mutation'
+import { PrivyAuthDialog } from '@/shared/auth/ui/privy-auth-dialog'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 
 const navigationItems = [
@@ -14,23 +13,22 @@ const navigationItems = [
 ] as const
 
 export function AppShell() {
-  const { connected } = useWallet()
+  const { authenticated, ready } = usePrivy()
   const queryClient = useQueryClient()
-  const logoutMutation = useLogoutMutation()
-  const wasConnectedRef = useRef(connected)
+  const wasAuthenticatedRef = useRef(authenticated)
 
   useEffect(() => {
-    const wasConnected = wasConnectedRef.current
+    if (!ready) return
 
-    if (wasConnected && !connected) {
-      queryClient.setQueryData(QUERY_KEYS.AUTH_ME, null)
+    const wasAuthenticated = wasAuthenticatedRef.current
+
+    if (wasAuthenticated && !authenticated) {
       queryClient.removeQueries({ queryKey: QUERY_KEYS.PURO_ACCOUNT })
       queryClient.removeQueries({ queryKey: QUERY_KEYS.ORDERS_GROUPED })
-      void logoutMutation.mutateAsync().catch(() => undefined)
     }
 
-    wasConnectedRef.current = connected
-  }, [connected, logoutMutation, queryClient])
+    wasAuthenticatedRef.current = authenticated
+  }, [authenticated, queryClient, ready])
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col p-4 sm:p-6">
@@ -57,8 +55,8 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <div className="wallet-connect sm:justify-self-end">
-          <WalletMultiButton />
+        <div className="sm:justify-self-end">
+          <PrivyAuthDialog />
         </div>
       </header>
       <main className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
