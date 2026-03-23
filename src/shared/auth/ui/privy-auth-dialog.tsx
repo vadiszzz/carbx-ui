@@ -58,10 +58,7 @@ export function PrivyAuthDialog() {
       <Dialog onOpenChange={setOpen} open={open}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Authentication</DialogTitle>
-            <DialogDescription>
-              Use one entrypoint for email, Google, or an external Solana wallet.
-            </DialogDescription>
+            <DialogTitle>Account Info</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">

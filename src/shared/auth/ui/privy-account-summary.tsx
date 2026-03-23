@@ -1,33 +1,22 @@
-import { useMemo } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
-import { useWallets } from '@privy-io/react-auth/solana'
+import { useMemo } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   getAuthIdentityLabel,
   getLinkedSolanaWallet,
-  getLinkedSolanaWallets,
   getPrimaryAuthMethodLabel,
-  getWalletClientLabel,
-} from '@/shared/auth/lib/privy-user'
+} from "@/shared/auth/lib/privy-user";
 
 export function PrivyAccountSummary() {
-  const { authenticated, ready, user } = usePrivy()
-  const { wallets } = useWallets()
+  const { authenticated, ready, user } = usePrivy();
 
-  const connectedWallet = wallets[0] ?? null
-  const linkedWallet = getLinkedSolanaWallet(user)
-  const linkedSolanaWallets = getLinkedSolanaWallets(user)
-  const authMethod = getPrimaryAuthMethodLabel(user)
-  const authIdentity = getAuthIdentityLabel(user)
-
-  const connectedWalletLabel = useMemo(() => {
-    if (!connectedWallet) return 'No connected wallet'
-    return `${connectedWallet.standardWallet.name} - ${shortenAddress(connectedWallet.address)}`
-  }, [connectedWallet])
+  const linkedWallet = getLinkedSolanaWallet(user);
+  const authMethod = getPrimaryAuthMethodLabel(user);
+  const authIdentity = getAuthIdentityLabel(user);
 
   const linkedWalletLabel = useMemo(() => {
-    if (!linkedWallet) return 'No linked Solana wallet'
-    return `${getWalletClientLabel(linkedWallet.walletClientType)} - ${shortenAddress(linkedWallet.address)}`
-  }, [linkedWallet])
+    if (!linkedWallet) return "No linked Solana wallet";
+    return `${linkedWallet.address}`;
+  }, [linkedWallet]);
 
   return (
     <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -35,42 +24,39 @@ export function PrivyAccountSummary() {
         <span className="text-sm font-medium text-slate-700">Status</span>
         <span
           className={[
-            'inline-flex rounded-full px-2.5 py-1 text-xs font-medium',
+            "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
             authenticated
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-slate-200 text-slate-700',
-          ].join(' ')}
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-slate-200 text-slate-700",
+          ].join(" ")}
         >
-          {ready ? (authenticated ? 'Authorized' : 'Not authorized') : 'Loading'}
+          {ready
+            ? authenticated
+              ? "Authorized"
+              : "Not authorized"
+            : "Loading"}
         </span>
       </div>
 
       <div className="grid gap-1 text-sm text-slate-600">
         <p className="m-0">
-          <span className="font-medium text-slate-800">Method:</span> {authMethod}
+          <span className="font-medium text-slate-800">Authorize Method:</span>{" "}
+          {authMethod}
         </p>
         <p className="m-0">
-          <span className="font-medium text-slate-800">Identity:</span>{' '}
-          {authIdentity ?? 'Not linked yet'}
+          <span className="font-medium text-slate-800">Identity:</span>{" "}
+          {authIdentity ?? "Not linked yet"}
         </p>
         <p className="m-0">
-          <span className="font-medium text-slate-800">Connected wallet:</span>{' '}
-          {connectedWalletLabel}
-        </p>
-        <p className="m-0">
-          <span className="font-medium text-slate-800">Linked Solana wallet:</span>{' '}
+          <span className="font-medium text-slate-800"> Solana wallet:</span>{" "}
           {linkedWalletLabel}
-        </p>
-        <p className="m-0">
-          <span className="font-medium text-slate-800">Linked Solana wallets:</span>{' '}
-          {linkedSolanaWallets.length}
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function shortenAddress(address: string) {
-  if (address.length <= 18) return address
-  return `${address.slice(0, 6)}...${address.slice(-6)}`
+  if (address.length <= 18) return address;
+  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }

@@ -8,6 +8,7 @@ import { QUERY_KEYS } from '@/shared/constants/query-keys'
 
 const navigationItems = [
   { to: ROUTE_PATHS.tokenize, label: 'Tokenize' },
+  { to: ROUTE_PATHS.marketplace, label: 'Marketplace' },
   { to: ROUTE_PATHS.orders, label: 'Orders' },
   { to: ROUTE_PATHS.tokens, label: 'Tokens' },
 ] as const
