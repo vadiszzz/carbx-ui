@@ -1,4 +1,4 @@
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLink, RotateCw } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import {
   Card,
@@ -60,7 +60,7 @@ export function TokensTable({
       </CardHeader>
       <CardContent className="grid gap-3">
         {!connected ? (
-          <div className="grid gap-2">
+          <div className="grid gap-2 rounded-[22px] border border-dashed border-slate-300 bg-slate-50/70 p-4">
             <Button onClick={onConnectWallet}>Connect wallet</Button>
             <p className="m-0 text-sm text-muted-foreground">
               Connect a Solana wallet through Privy to load tokens.
@@ -74,19 +74,23 @@ export function TokensTable({
           </p>
         ) : null}
 
-        <div className="flex justify-end">
+        <div className="app-toolbar justify-end">
           <Button
+            className="min-w-28"
             disabled={!ownerAddress || isRefreshing}
             onClick={onRefresh}
             variant="outline"
           >
             {isRefreshing ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
-                Refreshing...
+                <RotateCw className="size-4 animate-spin" />
+                Updating...
               </>
             ) : (
-              'Refresh'
+              <>
+                <RotateCw className="size-4" />
+                Update
+              </>
             )}
           </Button>
         </div>
@@ -153,6 +157,14 @@ export function TokensTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button
+                      disabled={!canAct || isRegistryLoading}
+                      onClick={() => {}}
+                      size="sm"
+                      variant="outline"
+                    >
+                      List
+                    </Button>
                     <Button
                       disabled={!canAct || isRegistryLoading}
                       onClick={() => onRedeem(token)}

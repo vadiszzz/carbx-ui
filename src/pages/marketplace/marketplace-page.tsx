@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, Loader2 } from 'lucide-react'
+import { ExternalLink, RotateCw, ShoppingBag } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
@@ -28,6 +28,7 @@ import {
 } from '@/shared/lib/vintage-tokens'
 import { Button } from '@/shared/ui/button'
 import { useToast } from '@/shared/ui/toast-provider'
+import { PageHeader } from '@/shared/ui/page-header'
 import {
   Card,
   CardContent,
@@ -61,6 +62,8 @@ type MarketplaceRow = {
   listing: ListingAccount
   token: VintageToken | null
 }
+
+type MarketplaceView = 'all' | 'mine'
 
 const USDC_DECIMALS = 1_000_000
 
@@ -109,6 +112,7 @@ export function MarketplacePage() {
   const [buyListing, setBuyListing] = useState<ListingAccount | null>(null)
   const [buyAmount, setBuyAmount] = useState('')
   const [isBuying, setIsBuying] = useState(false)
+  const [activeView, setActiveView] = useState<MarketplaceView>('all')
 
   const listingsQuery = useQuery<ListingAccount[], Error>({
     queryKey: QUERY_KEYS.MARKETPLACE_LISTINGS,
@@ -143,6 +147,15 @@ export function MarketplacePage() {
 
   const selectedBuyToken =
     rows.find((row) => row.listing.publicKey === buyListing?.publicKey)?.token ?? null
+
+  const filteredRows = useMemo(() => {
+    if (activeView === 'mine') {
+      if (!walletAddress) return []
+      return rows.filter((row) => row.listing.user === walletAddress)
+    }
+
+    return rows
+  }, [activeView, rows, walletAddress])
 
   async function handleBuySubmit() {
     if (!buyListing) return
@@ -245,9 +258,16 @@ export function MarketplacePage() {
 
   return (
     <section className="grid gap-5">
-      <div className="grid gap-2">
-        <h2 className="m-0 text-2xl font-semibold tracking-tight">Marketplace</h2>
-      </div>
+      <PageHeader
+        description="Browse live on-chain listings, compare sellers and pricing, and execute buys through the sponsored transaction flow."
+        kicker={
+          <div className="page-kicker">
+            <ShoppingBag className="size-3.5" />
+            Secondary market
+          </div>
+        }
+        title="Marketplace"
+      />
 
       <Card>
         <CardHeader>
@@ -257,7 +277,35 @@ export function MarketplacePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+              <button
+                className={[
+                  'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                  activeView === 'all'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950',
+                ].join(' ')}
+                onClick={() => setActiveView('all')}
+                type="button"
+              >
+                All listings
+              </button>
+              <button
+                className={[
+                  'rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
+                  activeView === 'mine'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950',
+                ].join(' ')}
+                onClick={() => setActiveView('mine')}
+                type="button"
+              >
+                My listings
+              </button>
+            </div>
+
+            <div className="app-toolbar justify-end">
             {!connectedWallet ? (
               <Button
                 onClick={() => connectWallet({ walletChainType: 'solana-only' })}
@@ -266,6 +314,7 @@ export function MarketplacePage() {
               </Button>
             ) : null}
             <Button
+              className="min-w-28"
               disabled={listingsQuery.isFetching || tokenMetadataQuery.isFetching}
               onClick={() => {
                 void listingsQuery.refetch()
@@ -275,13 +324,17 @@ export function MarketplacePage() {
             >
               {listingsQuery.isFetching || tokenMetadataQuery.isFetching ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Refreshing...
+                  <RotateCw className="size-4 animate-spin" />
+                  Updating...
                 </>
               ) : (
-                'Refresh'
+                <>
+                  <RotateCw className="size-4" />
+                  Update
+                </>
               )}
             </Button>
+            </div>
           </div>
 
           <Table>
@@ -314,15 +367,19 @@ export function MarketplacePage() {
 
               {!listingsQuery.isLoading &&
               !listingsQuery.isError &&
-              rows.length === 0 ? (
+              filteredRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-muted-foreground">
-                    No active listings found.
+                    {activeView === 'mine'
+                      ? walletAddress
+                        ? 'No listings found for this wallet.'
+                        : 'Connect a wallet to view your listings.'
+                      : 'No active listings found.'}
                   </TableCell>
                 </TableRow>
               ) : null}
 
-              {rows.map(({ listing, token }) => (
+              {filteredRows.map(({ listing, token }) => (
                 <TableRow key={listing.publicKey}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -352,16 +409,26 @@ export function MarketplacePage() {
                   <TableCell>{formatPrice(listing.unitPrice)} USDC</TableCell>
                   <TableCell>{formatUnixTimestamp(listing.createdAt)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      disabled={isBuying}
-                      onClick={() => {
-                        setBuyListing(listing)
-                        setBuyAmount(listing.amountToSell)
-                      }}
-                      size="sm"
-                    >
-                      Buy
-                    </Button>
+                    {walletAddress && listing.user === walletAddress ? (
+                      <Button
+                        onClick={() => {}}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Close
+                      </Button>
+                    ) : (
+                      <Button
+                        disabled={isBuying}
+                        onClick={() => {
+                          setBuyListing(listing)
+                          setBuyAmount(listing.amountToSell)
+                        }}
+                        size="sm"
+                      >
+                        Buy
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

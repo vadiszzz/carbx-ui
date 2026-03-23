@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, Loader2, Wallet } from 'lucide-react'
+import {
+  ArrowLeft,
+  ExternalLink,
+  ReceiptText,
+  RotateCw,
+  Wallet,
+} from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { useGroupedOrdersQuery } from '@/shared/api/orders/queries/use-grouped-orders-query'
@@ -12,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/ui/card'
+import { PageHeader } from '@/shared/ui/page-header'
 import {
   Table,
   TableBody,
@@ -62,6 +69,21 @@ function getSolscanTxUrl(signature: string) {
   return `https://solscan.io/tx/${signature}`
 }
 
+function DetailField(props: {
+  label: string
+  value: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={props.className}>
+      <p className="m-0 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+        {props.label}
+      </p>
+      <div className="mt-1 text-sm text-slate-900">{props.value}</div>
+    </div>
+  )
+}
+
 export function OrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const { authenticated, login, linkWallet } = usePrivy()
@@ -88,97 +110,156 @@ export function OrdersPage() {
 
   return (
     <section className="grid gap-5">
-      <div className="grid gap-2">
-        <p className="m-0 text-2xl font-semibold tracking-tight">Orders</p>
-      </div>
+      <PageHeader
+        description="Track tokenization orders, inspect lifecycle status, and open confirmed mint transactions in Solscan."
+        kicker={
+          <div className="page-kicker">
+            <ReceiptText className="size-3.5" />
+            Activity tracking
+          </div>
+        }
+        title="Orders"
+      />
 
       {selectedOrder ? (
         <Card>
           <CardHeader>
             <CardTitle>Order details</CardTitle>
             <CardDescription>
-              Detailed information for selected order.
+              Detailed information for the selected order.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm">
-            <div>
-              <Button onClick={() => setSelectedOrderId(null)} variant="outline">
-                Back to table
-              </Button>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-                <p className="m-0">
-                  <span className="text-muted-foreground">orderId:</span>{' '}
-                  {selectedOrder.order.orderId}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">orderType:</span>{' '}
-                  {selectedOrder.order.orderType}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">status:</span>{' '}
-                  {selectedOrder.order.status}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">wallet:</span>{' '}
-                  {selectedOrder.order.wallet}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">createdAt:</span>{' '}
-                  {selectedOrder.order.createdAt ? formatDate(selectedOrder.order.createdAt) : "—"}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">puroAccountNumber:</span>{' '}
-                  {selectedOrder.order.puroAccountNumber ?? '-'}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">receivedAmount:</span>{' '}
-                  {selectedOrder.order.receivedAmount ?? '-'}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">puroIncomingTxId:</span>{' '}
-                  {selectedOrder.order.puroIncomingTxId ?? '-'}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">certificateId:</span>{' '}
-                  {selectedOrder.order.certificateId ?? '-'}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">mintSignature:</span>{' '}
-                  {selectedOrder.order.mintSignature ? (
-                    <span className="inline-flex items-center gap-1">
-                      {formatCompactValue(selectedOrder.order.mintSignature)}
-                      <Button asChild size="xs" variant="ghost">
-                        <a
-                          href={getSolscanTxUrl(selectedOrder.order.mintSignature)}
-                          rel="noreferrer"
-                          target="_blank"
-                          title="Open in Solscan"
-                        >
-                          <ExternalLink className="size-3.5" />
-                          <span className="sr-only">Open in Solscan</span>
-                        </a>
-                      </Button>
-                    </span>
-                  ) : (
-                    '-'
-                  )}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">vintage:</span>{' '}
-                  {selectedOrder.order.vintage ?? '-'}
-                </p>
-                <p className="m-0">
-                  <span className="text-muted-foreground">methodologyName:</span>{' '}
-                  {selectedOrder.order.methodologyName ?? '-'}
-                </p>
-                {selectedOrder.order.errorMessage ? (
-                  <p className="m-0">
-                    <span className="text-muted-foreground">errorMessage:</span>{' '}
-                    {selectedOrder.order.errorMessage}
+          <CardContent className="grid gap-5 text-sm">
+            <div className="app-toolbar justify-between">
+              <div className="grid gap-3">
+                <Button
+                  className="w-fit"
+                  onClick={() => setSelectedOrderId(null)}
+                  size="sm"
+                  variant="outline"
+                >
+                  <ArrowLeft className="size-4" />
+                  Back
+                </Button>
+                <div className="grid gap-1">
+                  <p className="m-0 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                    Selected order
                   </p>
-                ) : null}
+                  <p className="m-0 text-lg font-semibold tracking-tight text-slate-950">
+                    {selectedOrder.order.orderId}
+                  </p>
+                </div>
               </div>
+              <span
+                className={[
+                  'inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium',
+                  getStatusClass(selectedOrder.order.status),
+                ].join(' ')}
+              >
+                {selectedOrder.order.status}
+              </span>
+            </div>
+
+            <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/80 p-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <DetailField
+                  label="Order type"
+                  value={selectedOrder.order.orderType}
+                />
+                <DetailField
+                  label="Created at"
+                  value={
+                    selectedOrder.order.createdAt
+                      ? formatDate(selectedOrder.order.createdAt)
+                      : '-'
+                  }
+                />
+                <DetailField
+                  label="Wallet"
+                  value={
+                    <span className="break-all">
+                      {selectedOrder.order.wallet}
+                    </span>
+                  }
+                />
+                <DetailField
+                  label="Received amount"
+                  value={selectedOrder.order.receivedAmount ?? '-'}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-[22px] border border-slate-200/80 bg-white/80 p-4">
+                <p className="m-0 text-sm font-semibold text-slate-950">
+                  Source data
+                </p>
+                <div className="mt-4 grid gap-4">
+                  <DetailField
+                    label="Puro account number"
+                    value={selectedOrder.order.puroAccountNumber ?? '-'}
+                  />
+                  <DetailField
+                    label="Puro incoming tx id"
+                    value={selectedOrder.order.puroIncomingTxId ?? '-'}
+                  />
+                  <DetailField
+                    label="Certificate id"
+                    value={selectedOrder.order.certificateId ?? '-'}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-slate-200/80 bg-white/80 p-4">
+                <p className="m-0 text-sm font-semibold text-slate-950">
+                  Asset data
+                </p>
+                <div className="mt-4 grid gap-4">
+                  <DetailField
+                    label="Vintage"
+                    value={selectedOrder.order.vintage ?? '-'}
+                  />
+                  <DetailField
+                    label="Methodology name"
+                    value={selectedOrder.order.methodologyName ?? '-'}
+                  />
+                  <DetailField
+                    label="Mint signature"
+                    value={
+                      selectedOrder.order.mintSignature ? (
+                        <span className="inline-flex items-center gap-1">
+                          {formatCompactValue(selectedOrder.order.mintSignature)}
+                          <Button asChild size="xs" variant="ghost">
+                            <a
+                              href={getSolscanTxUrl(selectedOrder.order.mintSignature)}
+                              rel="noreferrer"
+                              target="_blank"
+                              title="Open in Solscan"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              <span className="sr-only">Open in Solscan</span>
+                            </a>
+                          </Button>
+                        </span>
+                      ) : (
+                        '-'
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {selectedOrder.order.errorMessage ? (
+              <div className="rounded-[22px] border border-rose-200 bg-rose-50/80 p-4">
+                <p className="m-0 text-sm font-semibold text-rose-800">
+                  Error message
+                </p>
+                <p className="mt-2 m-0 text-sm leading-6 text-rose-700">
+                  {selectedOrder.order.errorMessage}
+                </p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : (
@@ -188,14 +269,12 @@ export function OrdersPage() {
           </CardHeader>
           <CardContent className="grid gap-3">
             {!authenticated ? (
-              <div className="grid gap-2 rounded-lg border border-dashed p-4">
+              <div className="grid gap-2 rounded-[22px] border border-dashed border-slate-300 bg-slate-50/70 p-4">
                 <p className="m-0 text-sm text-muted-foreground">
                   Use the unified Login flow powered by Privy.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => login()}>
-                    Open Login
-                  </Button>
+                <div className="app-toolbar">
+                  <Button onClick={() => login()}>Open Login</Button>
                 </div>
                 <p className="m-0 text-sm text-muted-foreground">
                   Click Login and choose wallet, email, or Google.
@@ -205,10 +284,11 @@ export function OrdersPage() {
               <>
                 {!hasSolanaWallet ? (
                   <p className="m-0 text-sm text-muted-foreground">
-                    Optional: link a Solana wallet to keep wallet-based flows available in the app.
+                    Optional: link a Solana wallet to keep wallet-based flows
+                    available in the app.
                   </p>
                 ) : null}
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="app-toolbar justify-end">
                   {!hasSolanaWallet ? (
                     <Button
                       onClick={() => linkWallet({ walletChainType: 'solana-only' })}
@@ -218,20 +298,24 @@ export function OrdersPage() {
                       Link Solana wallet
                     </Button>
                   ) : null}
-                <Button
-                  disabled={groupedOrdersQuery.isFetching}
-                  onClick={() => void groupedOrdersQuery.refetch()}
-                  variant="outline"
-                >
-                  {groupedOrdersQuery.isFetching ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Refreshing...
-                    </>
-                  ) : (
-                    'Refresh'
-                  )}
-                </Button>
+                  <Button
+                    className="min-w-28"
+                    disabled={groupedOrdersQuery.isFetching}
+                    onClick={() => void groupedOrdersQuery.refetch()}
+                    variant="outline"
+                  >
+                    {groupedOrdersQuery.isFetching ? (
+                      <>
+                        <RotateCw className="size-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCw className="size-4" />
+                        Update
+                      </>
+                    )}
+                  </Button>
                 </div>
               </>
             )}
@@ -284,7 +368,7 @@ export function OrdersPage() {
                     </TableCell>
                     <TableCell>{row.order.orderType}</TableCell>
                     <TableCell>
-                     {row.order.createdAt ? formatDate(row.order.createdAt) : "—"}
+                      {row.order.createdAt ? formatDate(row.order.createdAt) : '-'}
                     </TableCell>
                     <TableCell>
                       <span

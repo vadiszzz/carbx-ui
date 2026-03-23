@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Coins } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useQuery } from '@tanstack/react-query'
 import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
@@ -25,6 +26,7 @@ import {
   type VintageToken,
 } from '@/shared/lib/vintage-tokens'
 import { useToast } from '@/shared/ui/toast-provider'
+import { PageHeader } from '@/shared/ui/page-header'
 import type { CreateRetirePayload } from '@/shared/api/retire/types'
 import { BurnTokenDialog } from './components/burn-token-dialog'
 import { RetireTokenDialog } from './components/retire-token-dialog'
@@ -341,9 +343,16 @@ export function TokensPage() {
 
   return (
     <section className="grid gap-5">
-      <div className="grid gap-2">
-        <h2 className="m-0 text-2xl font-semibold tracking-tight">Tokens</h2>
-      </div>
+      <PageHeader
+        description="Review tokenized assets in the connected wallet, then redeem or retire them through the CarbX transaction flow."
+        kicker={
+          <div className="page-kicker">
+            <Coins className="size-3.5" />
+            Wallet inventory
+          </div>
+        }
+        title="Tokens"
+      />
 
       <TokensTable
         canAct={Boolean(publicKey)}

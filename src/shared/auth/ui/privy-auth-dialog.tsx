@@ -9,7 +9,6 @@ import { Button } from '@/shared/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -59,6 +58,10 @@ export function PrivyAuthDialog() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Account Info</DialogTitle>
+            <p className="text-sm leading-6 text-slate-600">
+              Manage authentication, linked wallet access, and sign out from the
+              shared CarbX operator workspace.
+            </p>
           </DialogHeader>
 
           <div className="grid gap-4">

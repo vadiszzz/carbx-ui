@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Copy, Loader2, Wallet } from 'lucide-react'
+import { Copy, Loader2, Mailbox, Sparkles, Wallet } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { usePuroAccountQuery } from '@/shared/api/puro/queries/use-puro-account-query'
 import { Button } from '@/shared/ui/button'
+import { PageHeader } from '@/shared/ui/page-header'
 import {
   Card,
   CardContent,
@@ -34,9 +35,16 @@ export function TokenizePage() {
 
   return (
     <section className="grid gap-5">
-      <div className="grid gap-2">
-        <h2 className="m-0 text-2xl font-semibold tracking-tight">Tokenize</h2>
-      </div>
+      <PageHeader
+        description="Generate the Puro destination account used for tokenization intake, then route CORCs into the CarbX flow."
+        kicker={
+          <div className="page-kicker">
+            <Sparkles className="size-3.5" />
+            Tokenization intake
+          </div>
+        }
+        title="Tokenize"
+      />
 
       <Card>
         <CardHeader>
@@ -47,7 +55,7 @@ export function TokenizePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="app-toolbar">
             {!authenticated ? (
               <Button onClick={() => login()}>
                 Continue with Login
@@ -93,12 +101,22 @@ export function TokenizePage() {
           ) : null}
 
           {hasPuroAccount ? (
-            <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-              <p className="m-0 text-muted-foreground">
-                Puro destination account. !!!DO NOT SEND REAL CORCS. ONLY PURO UAT ENV (TEST ENVIRONMENT)!!!
-              </p>
-              <div className="mt-1 flex items-center gap-1">
-                <p className="m-0 break-all font-medium">{puroAccountNumber}</p>
+            <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/90 p-4 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-teal-600/10 text-teal-700">
+                  <Mailbox className="size-4" />
+                </div>
+                <div className="grid flex-1 gap-1">
+                  <p className="m-0 font-medium text-slate-900">
+                    Puro destination account
+                  </p>
+                  <p className="m-0 text-muted-foreground">
+                    Test environment only. Do not send real CORCs to this address.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2">
+                <p className="m-0 break-all font-medium text-slate-900">{puroAccountNumber}</p>
                 <Button
                   className="h-7 px-2 text-xs text-muted-foreground"
                   onClick={handleCopy}
@@ -109,7 +127,7 @@ export function TokenizePage() {
                   {copied ? 'Copied' : 'Copy'}
                 </Button>
               </div>
-              <p className="mt-2 m-0 text-xs text-muted-foreground">
+              <p className="mt-3 m-0 text-xs text-muted-foreground">
                 Send your CORC to this address to complete tokenization.
               </p>
             </div>
