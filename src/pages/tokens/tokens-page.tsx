@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Coins } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
 import { Connection, PublicKey } from '@solana/web3.js'
 import bs58 from 'bs58'
@@ -10,6 +10,7 @@ import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { createRetire } from '@/shared/api/retire/requests'
 import { fetchSponsoredTransaction } from '@/shared/api/sponsored-transaction/requests'
 import { SPONSORED_TX_TYPES } from '@/shared/api/sponsored-transaction/types'
+import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import {
   CONFIG_PUBKEY,
   MINTER_PDA,
@@ -29,6 +30,7 @@ import { useToast } from '@/shared/ui/toast-provider'
 import { PageHeader } from '@/shared/ui/page-header'
 import type { CreateRetirePayload } from '@/shared/api/retire/types'
 import { BurnTokenDialog } from './components/burn-token-dialog'
+import { ListTokenDialog } from './components/list-token-dialog'
 import { RetireTokenDialog } from './components/retire-token-dialog'
 import { TokensTable } from './components/tokens-table'
 import {
@@ -37,11 +39,14 @@ import {
   type VintageRegistryMeta,
 } from './model'
 
+const USDC_DECIMALS = 1_000_000
+
 export function TokensPage() {
   const { connectWallet } = usePrivy()
   const { connected, connectedWallet, walletAddress } = usePrivyAuth()
   const { signAndSendTransaction } = useSignAndSendTransaction()
   const connection = new Connection(RPC_URL, 'confirmed')
+  const queryClient = useQueryClient()
 
   const ownerAddress = walletAddress
   const publicKey = ownerAddress ? new PublicKey(ownerAddress) : null
@@ -116,6 +121,10 @@ export function TokensPage() {
   const [burnAmount, setBurnAmount] = useState('')
   const [puroUserUuid, setPuroUserUuid] = useState('')
   const [isBurning, setIsBurning] = useState(false)
+  const [listToken, setListToken] = useState<VintageToken | null>(null)
+  const [listAmount, setListAmount] = useState('')
+  const [listPrice, setListPrice] = useState('')
+  const [isListing, setIsListing] = useState(false)
   const [retireToken, setRetireToken] = useState<VintageToken | null>(null)
   const [retireAmount, setRetireAmount] = useState('')
   const [retireForm, setRetireForm] = useState<RetireFormState>(
@@ -125,10 +134,12 @@ export function TokensPage() {
 
   async function sendSponsoredTransaction(input: {
     txType:
+      | typeof SPONSORED_TX_TYPES.LIST_VINTAGE
       | typeof SPONSORED_TX_TYPES.BURN_VINTAGE
       | typeof SPONSORED_TX_TYPES.RETIRE_VINTAGE
     registry: string
     amount: number
+    price?: number
     carbxRetireUuid?: string
     puroUserUuid?: string
   }) {
@@ -145,6 +156,7 @@ export function TokensPage() {
       user: publicKey.toBase58(),
       registry: input.registry,
       amount: input.amount,
+      price: input.price,
       carbxRetireUuid: input.carbxRetireUuid,
       puroUserUuid: input.puroUserUuid,
     })
@@ -170,6 +182,96 @@ export function TokensPage() {
     await waitForTransactionConfirmation(connection, signature)
 
     return signature
+  }
+
+  async function handleListSubmit() {
+    if (!listToken) return
+    if (!publicKey) {
+      showToast({ type: 'error', text: 'Wallet is not connected', durationMs: 5000 })
+      return
+    }
+
+    const amount = Number(listAmount)
+    if (!Number.isInteger(amount) || amount <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Amount must be a positive integer',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const priceUsdc = Number(listPrice)
+    if (!Number.isFinite(priceUsdc) || priceUsdc <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Price must be a positive number in USDC',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const price = Math.round(priceUsdc * USDC_DECIMALS)
+    if (!Number.isInteger(price) || price <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Converted price must be greater than zero',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const tokenRegistry = (registryMetaQuery.data ?? []).find(
+      (registry) => registry.tokenMint === listToken.mint
+    )
+    if (!tokenRegistry) {
+      showToast({
+        type: 'error',
+        text: 'Registry data for selected token was not found',
+        durationMs: 7000,
+      })
+      return
+    }
+
+    setIsListing(true)
+    const toastId = showToast({
+      type: 'info',
+      text: 'Building list transaction...',
+    })
+
+    try {
+      const registry = qist_puro.helpers.findRegistryPda(
+        CONFIG_PUBKEY,
+        tokenRegistry.companyId16,
+        tokenRegistry.year
+      )
+
+      updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+      const signature = await sendSponsoredTransaction({
+        txType: SPONSORED_TX_TYPES.LIST_VINTAGE,
+        registry: registry.toBase58(),
+        amount,
+        price,
+      })
+
+      updateToast(toastId, {
+        type: 'success',
+        text: 'List transaction confirmed',
+        signature,
+        durationMs: 6000,
+      })
+
+      setListToken(null)
+      setListAmount('')
+      setListPrice('')
+      await vintageTokensQuery.refetch()
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MARKETPLACE_LISTINGS })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'List failed'
+      updateToast(toastId, { type: 'error', text: message, durationMs: 7000 })
+    } finally {
+      setIsListing(false)
+    }
   }
 
   async function handleBurnSubmit() {
@@ -363,6 +465,11 @@ export function TokensPage() {
         isRefreshing={vintageTokensQuery.isFetching}
         isRegistryLoading={registryMetaQuery.isLoading}
         onConnectWallet={() => connectWallet({ walletChainType: 'solana-only' })}
+        onList={(token) => {
+          setListToken(token)
+          setListAmount('')
+          setListPrice('')
+        }}
         onRedeem={(token) => {
           setBurnToken(token)
           setBurnAmount('')
@@ -376,6 +483,17 @@ export function TokensPage() {
         }}
         ownerAddress={ownerAddress}
         tokens={vintageTokensQuery.data ?? []}
+      />
+
+      <ListTokenDialog
+        amount={listAmount}
+        isSubmitting={isListing}
+        onAmountChange={setListAmount}
+        onClose={() => setListToken(null)}
+        onPriceChange={setListPrice}
+        onSubmit={() => void handleListSubmit()}
+        price={listPrice}
+        token={listToken}
       />
 
       <BurnTokenDialog

@@ -45,6 +45,7 @@ import {
   TableRow,
 } from '@/shared/ui/table'
 import { BuyListingDialog } from './components/buy-listing-dialog'
+import { EditListingDialog } from './components/edit-listing-dialog'
 
 type ListingAccount = {
   publicKey: string
@@ -113,6 +114,10 @@ export function MarketplacePage() {
   const [buyAmount, setBuyAmount] = useState('')
   const [isBuying, setIsBuying] = useState(false)
   const [activeView, setActiveView] = useState<MarketplaceView>('all')
+  const [editListing, setEditListing] = useState<ListingAccount | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
 
   const listingsQuery = useQuery<ListingAccount[], Error>({
     queryKey: QUERY_KEYS.MARKETPLACE_LISTINGS,
@@ -147,6 +152,8 @@ export function MarketplacePage() {
 
   const selectedBuyToken =
     rows.find((row) => row.listing.publicKey === buyListing?.publicKey)?.token ?? null
+  const selectedEditToken =
+    rows.find((row) => row.listing.publicKey === editListing?.publicKey)?.token ?? null
 
   const filteredRows = useMemo(() => {
     if (activeView === 'mine') {
@@ -156,6 +163,59 @@ export function MarketplacePage() {
 
     return rows
   }, [activeView, rows, walletAddress])
+
+  async function signSponsoredTransaction(params: {
+    txType:
+      | typeof SPONSORED_TX_TYPES.BUY_VINTAGE_FROM_LISTING
+      | typeof SPONSORED_TX_TYPES.EDIT_LISTING
+    registry: string
+    amount: number
+    price?: number
+    listing?: string
+    seller?: string
+    listingRentPayer?: string
+  }) {
+    if (!connectedWallet) {
+      throw new Error('Connect your Solana wallet in Privy before continuing')
+    }
+
+    if (!walletAddress) {
+      throw new Error('Wallet is not connected')
+    }
+
+    const sponsoredTx = await fetchSponsoredTransaction({
+      txType: params.txType,
+      user: walletAddress,
+      registry: params.registry,
+      amount: params.amount,
+      price: params.price,
+      listing: params.listing,
+      seller: params.seller,
+      listingRentPayer: params.listingRentPayer,
+    })
+
+    if (sponsoredTx.errorMessage) {
+      throw new Error(sponsoredTx.errorMessage)
+    }
+
+    if (!sponsoredTx.tx) {
+      throw new Error('Sponsored transaction payload is empty')
+    }
+
+    const signatureResult = await signAndSendTransaction({
+      transaction: base64ToBytes(sponsoredTx.tx),
+      wallet: connectedWallet,
+      chain: SOLANA_CHAIN,
+      options: {
+        skipPreflight: true,
+      },
+    })
+
+    const signature = bs58.encode(signatureResult.signature)
+    await waitForTransactionConfirmation(connection, signature)
+
+    return signature
+  }
 
   async function handleBuySubmit() {
     if (!buyListing) return
@@ -201,9 +261,8 @@ export function MarketplacePage() {
     })
 
     try {
-      const sponsoredTx = await fetchSponsoredTransaction({
+      const signature = await signSponsoredTransaction({
         txType: SPONSORED_TX_TYPES.BUY_VINTAGE_FROM_LISTING,
-        userPubkey: buyerPublicKey.toBase58(),
         registry: buyListing.registry,
         listing: buyListing.publicKey,
         seller: buyListing.user,
@@ -211,27 +270,7 @@ export function MarketplacePage() {
         amount,
       })
 
-      if (sponsoredTx.errorMessage) {
-        throw new Error(sponsoredTx.errorMessage)
-      }
-
-      if (!sponsoredTx.tx) {
-        throw new Error('Sponsored transaction payload is empty')
-      }
-
       updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
-
-      const signatureResult = await signAndSendTransaction({
-        transaction: base64ToBytes(sponsoredTx.tx),
-        wallet: connectedWallet,
-        chain: SOLANA_CHAIN,
-        options: {
-          skipPreflight: true,
-        },
-      })
-
-      const signature = bs58.encode(signatureResult.signature)
-      await waitForTransactionConfirmation(connection, signature)
 
       updateToast(toastId, {
         type: 'success',
@@ -253,6 +292,125 @@ export function MarketplacePage() {
       })
     } finally {
       setIsBuying(false)
+    }
+  }
+
+  async function handleEditListingSubmit() {
+    if (!editListing) return
+
+    const amount = Number(editAmount)
+    if (!Number.isInteger(amount) || amount <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Amount must be a positive integer',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const priceUsdc = Number(editPrice)
+    if (!Number.isFinite(priceUsdc) || priceUsdc <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Price must be a positive number in USDC',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const price = Math.round(priceUsdc * USDC_DECIMALS)
+    if (!Number.isInteger(price) || price <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Converted price must be greater than zero',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    setIsEditing(true)
+    const toastId = showToast({
+      type: 'info',
+      text: 'Building edit listing transaction...',
+    })
+
+    try {
+      updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+      const signature = await signSponsoredTransaction({
+        txType: SPONSORED_TX_TYPES.EDIT_LISTING,
+        registry: editListing.registry,
+        listing: editListing.publicKey,
+        listingRentPayer: editListing.rentPayer,
+        amount,
+        price,
+      })
+
+      updateToast(toastId, {
+        type: 'success',
+        text: 'Listing updated',
+        signature,
+        durationMs: 6000,
+      })
+
+      setEditListing(null)
+      setEditAmount('')
+      setEditPrice('')
+      await listingsQuery.refetch()
+      await tokenMetadataQuery.refetch()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Edit listing failed'
+      updateToast(toastId, {
+        type: 'error',
+        text: message,
+        durationMs: 7000,
+      })
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  async function handleCloseListing(listing: ListingAccount) {
+    setIsEditing(true)
+    const toastId = showToast({
+      type: 'info',
+      text: 'Building close listing transaction...',
+    })
+
+    try {
+      updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+      const signature = await signSponsoredTransaction({
+        txType: SPONSORED_TX_TYPES.EDIT_LISTING,
+        registry: listing.registry,
+        listing: listing.publicKey,
+        listingRentPayer: listing.rentPayer,
+        amount: 0,
+        price: Number(listing.unitPrice),
+      })
+
+      updateToast(toastId, {
+        type: 'success',
+        text: 'Listing closed',
+        signature,
+        durationMs: 6000,
+      })
+
+      if (editListing?.publicKey === listing.publicKey) {
+        setEditListing(null)
+        setEditAmount('')
+        setEditPrice('')
+      }
+
+      await listingsQuery.refetch()
+      await tokenMetadataQuery.refetch()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Close listing failed'
+      updateToast(toastId, {
+        type: 'error',
+        text: message,
+        durationMs: 7000,
+      })
+    } finally {
+      setIsEditing(false)
     }
   }
 
@@ -410,13 +568,28 @@ export function MarketplacePage() {
                   <TableCell>{formatUnixTimestamp(listing.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     {walletAddress && listing.user === walletAddress ? (
-                      <Button
-                        onClick={() => {}}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Close
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          disabled={isEditing}
+                          onClick={() => {
+                            setEditListing(listing)
+                            setEditAmount(listing.amountToSell)
+                            setEditPrice(formatPrice(listing.unitPrice))
+                          }}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          disabled={isEditing}
+                          onClick={() => void handleCloseListing(listing)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Close
+                        </Button>
+                      </div>
                     ) : (
                       <Button
                         disabled={isBuying}
@@ -446,6 +619,26 @@ export function MarketplacePage() {
         onClose={() => setBuyListing(null)}
         onSubmit={() => void handleBuySubmit()}
         token={selectedBuyToken}
+      />
+
+      <EditListingDialog
+        amount={editAmount}
+        isSubmitting={isEditing}
+        listing={
+          editListing
+            ? {
+                user: editListing.user,
+                amountToSell: editListing.amountToSell,
+                unitPrice: formatPrice(editListing.unitPrice),
+              }
+            : null
+        }
+        onAmountChange={setEditAmount}
+        onClose={() => setEditListing(null)}
+        onPriceChange={setEditPrice}
+        onSubmit={() => void handleEditListingSubmit()}
+        price={editPrice}
+        token={selectedEditToken}
       />
     </section>
   )

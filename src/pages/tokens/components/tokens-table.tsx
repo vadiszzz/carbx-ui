@@ -33,6 +33,7 @@ type TokensTableProps = {
   errorMessage?: string
   tokens: VintageToken[]
   onConnectWallet: () => void
+  onList: (token: VintageToken) => void
   onRefresh: () => void
   onRedeem: (token: VintageToken) => void
   onRetire: (token: VintageToken) => void
@@ -49,6 +50,7 @@ export function TokensTable({
   errorMessage,
   tokens,
   onConnectWallet,
+  onList,
   onRefresh,
   onRedeem,
   onRetire,
@@ -159,7 +161,7 @@ export function TokensTable({
                   <div className="flex justify-end gap-2">
                     <Button
                       disabled={!canAct || isRegistryLoading}
-                      onClick={() => {}}
+                      onClick={() => onList(token)}
                       size="sm"
                       variant="outline"
                     >

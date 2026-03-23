@@ -130,14 +130,9 @@ export function LoginPage() {
                 <h2 className="mt-4 m-0 text-3xl font-semibold tracking-tight text-slate-950">
                   Sign in to CarbX
                 </h2>
-                <p className="mt-3 m-0 max-w-md text-sm leading-6 text-slate-600">
-                  Pick the login method that fits your workflow. Wallet access is
-                  the most direct path; email and Google can still provision a
-                  Solana wallet through Privy.
-                </p>
               </div>
 
-              <CardContent className="grid gap-6 p-6 sm:p-8">
+              <CardContent className="grid gap-6 px-6 pb-8 sm:px-8">
                 <div className="grid gap-3">
                   <Button
                     className="h-12 justify-between rounded-xl bg-teal-700 px-5 text-sm font-medium text-white hover:bg-teal-800"
@@ -180,20 +175,6 @@ export function LoginPage() {
                   </Button>
                 </div>
 
-                <div className="page-stat">
-                  <p className="page-stat-label">After login</p>
-                  <p className="page-stat-copy">
-                    Your session is authenticated through Privy, a Solana wallet
-                    can be provisioned automatically, and the app opens directly
-                    into the operations workspace.
-                  </p>
-                </div>
-
-                <p className="m-0 text-xs leading-5 text-slate-500">
-                  {ready
-                    ? "Authentication is ready."
-                    : "Initializing Privy authentication..."}
-                </p>
               </CardContent>
             </Card>
           </section>
