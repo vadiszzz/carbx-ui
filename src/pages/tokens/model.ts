@@ -7,7 +7,7 @@ import {
 
 export type VintageRegistryMeta = {
   tokenMint: string
-  companyId16: string
+  companyId32: string
   year: number
 }
 

@@ -100,15 +100,15 @@ export function TokensPage() {
 
           if (!tokenMint || !companyIdBytes || !year) return null
 
-          const companyId16 = qist_puro.helpers
-            .decodeFixedBytes16(companyIdBytes)
+          const companyId32 = qist_puro.helpers
+            .decodeFixedBytes(companyIdBytes)
             .replaceAll(String.fromCharCode(0), '')
 
-          if (!companyId16) return null
+          if (!companyId32) return null
 
           return {
             tokenMint,
-            companyId16,
+            companyId32,
             year,
           } satisfies VintageRegistryMeta
         })
@@ -242,7 +242,7 @@ export function TokensPage() {
     try {
       const registry = qist_puro.helpers.findRegistryPda(
         CONFIG_PUBKEY,
-        tokenRegistry.companyId16,
+        tokenRegistry.companyId32,
         tokenRegistry.year
       )
 
@@ -313,7 +313,7 @@ export function TokensPage() {
     try {
       const registry = qist_puro.helpers.findRegistryPda(
         CONFIG_PUBKEY,
-        tokenRegistry.companyId16,
+        tokenRegistry.companyId32,
         tokenRegistry.year
       )
 
@@ -403,7 +403,7 @@ export function TokensPage() {
 
       const registry = qist_puro.helpers.findRegistryPda(
         CONFIG_PUBKEY,
-        tokenRegistry.companyId16,
+        tokenRegistry.companyId32,
         tokenRegistry.year
       )
 
