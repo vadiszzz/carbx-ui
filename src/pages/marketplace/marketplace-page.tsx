@@ -18,6 +18,7 @@ import {
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import {
   base64ToBytes,
+  parseLocalizedNumber,
   waitForTransactionConfirmation,
 } from '@/shared/lib/solana'
 import {
@@ -234,7 +235,12 @@ export function MarketplacePage() {
       return
     }
 
-    const amount = Number(buyAmount)
+    let amount: number
+    try {
+      amount = parseLocalizedNumber(buyAmount)
+    } catch {
+      amount = Number.NaN
+    }
     if (!Number.isInteger(amount) || amount <= 0) {
       showToast({
         type: 'error',
@@ -298,7 +304,12 @@ export function MarketplacePage() {
   async function handleEditListingSubmit() {
     if (!editListing) return
 
-    const amount = Number(editAmount)
+    let amount: number
+    try {
+      amount = parseLocalizedNumber(editAmount)
+    } catch {
+      amount = Number.NaN
+    }
     if (!Number.isInteger(amount) || amount <= 0) {
       showToast({
         type: 'error',
@@ -308,7 +319,12 @@ export function MarketplacePage() {
       return
     }
 
-    const priceUsdc = Number(editPrice)
+    let priceUsdc: number
+    try {
+      priceUsdc = parseLocalizedNumber(editPrice)
+    } catch {
+      priceUsdc = Number.NaN
+    }
     if (!Number.isFinite(priceUsdc) || priceUsdc <= 0) {
       showToast({
         type: 'error',

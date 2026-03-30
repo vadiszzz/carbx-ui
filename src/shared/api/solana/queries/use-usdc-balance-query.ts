@@ -2,9 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
-import { RPC_URL } from '@/shared/constants/solana'
-
-const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+import { RPC_URL, USDC_MINT } from '@/shared/constants/solana'
 
 export function useUsdcBalanceQuery(walletAddress?: string) {
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), [])

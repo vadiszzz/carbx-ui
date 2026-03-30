@@ -33,6 +33,7 @@ type TokensTableProps = {
   errorMessage?: string
   tokens: VintageToken[]
   onConnectWallet: () => void
+  onWithdraw: (token: VintageToken) => void
   onList: (token: VintageToken) => void
   onRefresh: () => void
   onRedeem: (token: VintageToken) => void
@@ -50,6 +51,7 @@ export function TokensTable({
   errorMessage,
   tokens,
   onConnectWallet,
+  onWithdraw,
   onList,
   onRefresh,
   onRedeem,
@@ -159,6 +161,14 @@ export function TokensTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button
+                      disabled={!canAct || isRegistryLoading}
+                      onClick={() => onWithdraw(token)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Withdraw
+                    </Button>
                     <Button
                       disabled={!canAct || isRegistryLoading}
                       onClick={() => onList(token)}

@@ -20,14 +20,19 @@ import {
 import { getApiErrorMessage } from '@/shared/lib/api-errors'
 import {
   base64ToBytes,
+  isValidSolanaAddress,
+  parseLocalizedNumber,
+  parseUiAmountToAtomic,
   waitForTransactionConfirmation,
 } from '@/shared/lib/solana'
 import {
+  formatVintageTokenAmount,
   getVintageTokens,
   type VintageToken,
 } from '@/shared/lib/vintage-tokens'
 import { useToast } from '@/shared/ui/toast-provider'
 import { PageHeader } from '@/shared/ui/page-header'
+import { WithdrawTokenDialog } from '@/shared/ui/withdraw-token-dialog'
 import type { CreateRetirePayload } from '@/shared/api/retire/types'
 import { BurnTokenDialog } from './components/burn-token-dialog'
 import { ListTokenDialog } from './components/list-token-dialog'
@@ -125,6 +130,10 @@ export function TokensPage() {
   const [listAmount, setListAmount] = useState('')
   const [listPrice, setListPrice] = useState('')
   const [isListing, setIsListing] = useState(false)
+  const [withdrawToken, setWithdrawToken] = useState<VintageToken | null>(null)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawRecipient, setWithdrawRecipient] = useState('')
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [retireToken, setRetireToken] = useState<VintageToken | null>(null)
   const [retireAmount, setRetireAmount] = useState('')
   const [retireForm, setRetireForm] = useState<RetireFormState>(
@@ -137,11 +146,14 @@ export function TokensPage() {
       | typeof SPONSORED_TX_TYPES.LIST_VINTAGE
       | typeof SPONSORED_TX_TYPES.BURN_VINTAGE
       | typeof SPONSORED_TX_TYPES.RETIRE_VINTAGE
-    registry: string
+      | typeof SPONSORED_TX_TYPES.TRANSFER_TOKEN
+    registry?: string
     amount: number
     price?: number
     carbxRetireUuid?: string
     puroUserUuid?: string
+    tokenMint?: string
+    recipient?: string
   }) {
     if (!publicKey) {
       throw new Error('Wallet is not connected')
@@ -159,6 +171,8 @@ export function TokensPage() {
       price: input.price,
       carbxRetireUuid: input.carbxRetireUuid,
       puroUserUuid: input.puroUserUuid,
+      tokenMint: input.tokenMint,
+      recipient: input.recipient,
     })
 
     if (sponsoredTx.errorMessage) {
@@ -184,6 +198,97 @@ export function TokensPage() {
     return signature
   }
 
+  async function handleWithdrawSubmit() {
+    if (!withdrawToken) return
+    if (!publicKey) {
+      showToast({ type: 'error', text: 'Wallet is not connected', durationMs: 5000 })
+      return
+    }
+
+    const recipient = withdrawRecipient.trim()
+    if (!isValidSolanaAddress(recipient)) {
+      showToast({
+        type: 'error',
+        text: 'Recipient must be a valid Solana address',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const decimals =
+      typeof withdrawToken.tokenInfo?.decimals === 'number'
+        ? withdrawToken.tokenInfo.decimals
+        : 0
+
+    let amount: number
+    try {
+      amount = parseUiAmountToAtomic(withdrawAmount, decimals)
+    } catch (error) {
+      showToast({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Amount is invalid',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    if (amount <= 0) {
+      showToast({
+        type: 'error',
+        text: 'Amount must be greater than zero',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    const availableBalance = withdrawToken.tokenInfo?.balance
+    if (
+      typeof availableBalance === 'number' &&
+      Number.isFinite(availableBalance) &&
+      amount > availableBalance
+    ) {
+      showToast({
+        type: 'error',
+        text: 'Amount exceeds available token balance',
+        durationMs: 5000,
+      })
+      return
+    }
+
+    setIsWithdrawing(true)
+    const toastId = showToast({
+      type: 'info',
+      text: 'Building withdraw transaction...',
+    })
+
+    try {
+      updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+      const signature = await sendSponsoredTransaction({
+        txType: SPONSORED_TX_TYPES.TRANSFER_TOKEN,
+        amount,
+        tokenMint: withdrawToken.mint,
+        recipient,
+      })
+
+      updateToast(toastId, {
+        type: 'success',
+        text: 'Withdraw transaction confirmed',
+        signature,
+        durationMs: 6000,
+      })
+
+      setWithdrawToken(null)
+      setWithdrawAmount('')
+      setWithdrawRecipient('')
+      await vintageTokensQuery.refetch()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Withdraw failed'
+      updateToast(toastId, { type: 'error', text: message, durationMs: 7000 })
+    } finally {
+      setIsWithdrawing(false)
+    }
+  }
+
   async function handleListSubmit() {
     if (!listToken) return
     if (!publicKey) {
@@ -191,7 +296,12 @@ export function TokensPage() {
       return
     }
 
-    const amount = Number(listAmount)
+    let amount: number
+    try {
+      amount = parseLocalizedNumber(listAmount)
+    } catch {
+      amount = Number.NaN
+    }
     if (!Number.isInteger(amount) || amount <= 0) {
       showToast({
         type: 'error',
@@ -201,7 +311,12 @@ export function TokensPage() {
       return
     }
 
-    const priceUsdc = Number(listPrice)
+    let priceUsdc: number
+    try {
+      priceUsdc = parseLocalizedNumber(listPrice)
+    } catch {
+      priceUsdc = Number.NaN
+    }
     if (!Number.isFinite(priceUsdc) || priceUsdc <= 0) {
       showToast({
         type: 'error',
@@ -281,7 +396,12 @@ export function TokensPage() {
       return
     }
 
-    const amount = Number(burnAmount)
+    let amount: number
+    try {
+      amount = parseLocalizedNumber(burnAmount)
+    } catch {
+      amount = Number.NaN
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       showToast({ type: 'error', text: 'Amount must be a positive number', durationMs: 5000 })
       return
@@ -354,7 +474,12 @@ export function TokensPage() {
       return
     }
 
-    const amount = Number(retireAmount)
+    let amount: number
+    try {
+      amount = parseLocalizedNumber(retireAmount)
+    } catch {
+      amount = Number.NaN
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       showToast({ type: 'error', text: 'Amount must be a positive number', durationMs: 5000 })
       return
@@ -465,6 +590,11 @@ export function TokensPage() {
         isRefreshing={vintageTokensQuery.isFetching}
         isRegistryLoading={registryMetaQuery.isLoading}
         onConnectWallet={() => connectWallet({ walletChainType: 'solana-only' })}
+        onWithdraw={(token) => {
+          setWithdrawToken(token)
+          setWithdrawAmount('')
+          setWithdrawRecipient('')
+        }}
         onList={(token) => {
           setListToken(token)
           setListAmount('')
@@ -483,6 +613,21 @@ export function TokensPage() {
         }}
         ownerAddress={ownerAddress}
         tokens={vintageTokensQuery.data ?? []}
+      />
+
+      <WithdrawTokenDialog
+        amount={withdrawAmount}
+        availableAmount={withdrawToken ? formatVintageTokenAmount(withdrawToken) : '-'}
+        isSubmitting={isWithdrawing}
+        onAmountChange={setWithdrawAmount}
+        onClose={() => setWithdrawToken(null)}
+        onRecipientChange={setWithdrawRecipient}
+        onSubmit={() => void handleWithdrawSubmit()}
+        open={Boolean(withdrawToken)}
+        recipient={withdrawRecipient}
+        tokenMint={withdrawToken?.mint ?? ''}
+        tokenName={withdrawToken?.name ?? 'Token'}
+        tokenSymbol={withdrawToken?.symbol}
       />
 
       <ListTokenDialog

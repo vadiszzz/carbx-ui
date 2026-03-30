@@ -7,7 +7,7 @@ export const SponsoredTransactionParamsSchema = z.object({
   txType: SponsoredTxTypeSchema,
   user: solanaAddressSchema.optional(),
   userPubkey: solanaAddressSchema.optional(),
-  registry: solanaAddressSchema,
+  registry: solanaAddressSchema.optional(),
   amount: z.number().finite().min(0),
   carbxRetireUuid: z.string().min(1).optional(),
   price: z.number().finite().min(0).optional(),
@@ -15,6 +15,8 @@ export const SponsoredTransactionParamsSchema = z.object({
   seller: solanaAddressSchema.optional(),
   listingRentPayer: solanaAddressSchema.optional(),
   puroUserUuid: z.string().min(1).optional(),
+  tokenMint: solanaAddressSchema.optional(),
+  recipient: solanaAddressSchema.optional(),
 })
 
 export const SponsoredTransactionResponseSchema = z.object({
