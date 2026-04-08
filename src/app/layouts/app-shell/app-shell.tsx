@@ -49,9 +49,6 @@ export function AppShell() {
                 <p className="m-0 text-lg font-semibold tracking-tight text-slate-950">
                   CarbX
                 </p>
-                <p className="m-0 text-xs uppercase tracking-[0.22em] text-slate-500">
-                  Climate Operations
-                </p>
               </div>
             </div>
 

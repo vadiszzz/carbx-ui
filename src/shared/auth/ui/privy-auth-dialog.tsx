@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, LogOut, Wallet } from 'lucide-react'
+import { CreditCard, LogIn, LogOut, Wallet } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
 import { useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ import { Button } from '@/shared/ui/button'
 import { useToast } from '@/shared/ui/toast-provider'
 import { useUsdcBalanceQuery } from '@/shared/api/solana/queries/use-usdc-balance-query'
 import { WithdrawTokenDialog } from '@/shared/ui/withdraw-token-dialog'
+import { OnramperOnrampDialog } from '@/shared/onramper/ui/onramper-onramp-dialog'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import {
 export function PrivyAuthDialog() {
   const [open, setOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [onrampOpen, setOnrampOpen] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawRecipient, setWithdrawRecipient] = useState('')
   const [isWithdrawing, setIsWithdrawing] = useState(false)
@@ -226,6 +228,14 @@ export function PrivyAuthDialog() {
               <div className="grid gap-2">
                 <Button
                   disabled={!walletAddress}
+                  onClick={() => setOnrampOpen(true)}
+                  variant="outline"
+                >
+                  <CreditCard className="size-4" />
+                  Top up with Onramper
+                </Button>
+                <Button
+                  disabled={!walletAddress}
                   onClick={() => setWithdrawOpen(true)}
                   variant="outline"
                 >
@@ -270,6 +280,12 @@ export function PrivyAuthDialog() {
         tokenMint={USDC_MINT}
         tokenName="USD Coin"
         tokenSymbol="USDC"
+      />
+
+      <OnramperOnrampDialog
+        onClose={() => setOnrampOpen(false)}
+        open={onrampOpen}
+        walletAddress={walletAddress}
       />
     </>
   )
