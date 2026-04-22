@@ -17,6 +17,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color-scheme: light;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -27,6 +28,12 @@
       radial-gradient(circle at right bottom, rgba(22, 163, 74, 0.1), transparent 24%),
       linear-gradient(180deg, #f7faf9 0%, #eef3f1 100%);
     background-attachment: fixed;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   #root {
