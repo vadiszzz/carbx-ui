@@ -1,16 +1,27 @@
 export const ROUTE_SEGMENTS = {
   login: 'login',
-  tokenize: 'tokenize',
-  orders: 'orders',
-  tokens: 'tokens',
   marketplace: 'marketplace',
+  marketplaceListing: 'marketplace/:listingPublicKey',
+  portfolio: 'portfolio',
+  portfolioHoldings: 'holdings',
+  portfolioDeposit: 'deposit',
+  portfolioWithdraw: 'withdraw',
+  portfolioActivity: 'activity',
+  account: 'account',
 } as const
 
 export const ROUTE_PATHS = {
   home: '/',
-  login: `/${ROUTE_SEGMENTS.login}`,
-  tokenize: `/${ROUTE_SEGMENTS.tokenize}`,
-  orders: `/${ROUTE_SEGMENTS.orders}`,
-  tokens: `/${ROUTE_SEGMENTS.tokens}`,
-  marketplace: `/${ROUTE_SEGMENTS.marketplace}`,
+  login: '/login',
+  marketplace: '/marketplace',
+  portfolio: '/portfolio',
+  portfolioHoldings: '/portfolio/holdings',
+  portfolioDeposit: '/portfolio/deposit',
+  portfolioWithdraw: '/portfolio/withdraw',
+  portfolioActivity: '/portfolio/activity',
+  account: '/account',
 } as const
+
+export function listingDetailPath(listingPublicKey: string): string {
+  return `/marketplace/${listingPublicKey}`
+}

@@ -1,67 +1,58 @@
-import { usePrivy } from "@privy-io/react-auth";
-import { Navigate } from "react-router-dom";
-import { ROUTE_PATHS } from "@/app/router/route-paths";
-import { Button } from "@/shared/ui/button";
+import { usePrivy } from '@privy-io/react-auth'
+import { Navigate } from 'react-router-dom'
+import { ROUTE_PATHS } from '@/app/router/route-paths'
 
 const NAV_ITEMS = [
-  { label: "Suppliers", href: "#suppliers" },
-  { label: "Buyers", href: "#buyers" },
-  { label: "Resources", href: "#resources" },
-  { label: "Trust Infrastructure", href: "#trust-infrastructure" },
-] as const;
+  { label: 'Suppliers', href: '#suppliers' },
+  { label: 'Buyers', href: '#buyers' },
+  { label: 'Resources', href: '#resources' },
+  { label: 'Trust Infrastructure', href: '#trust-infrastructure' },
+] as const
 
 const FOOTER_COLUMNS = [
   {
-    title: "Company",
-    links: ["Home", "About us"],
+    title: 'Company',
+    links: ['Home', 'About us'],
   },
   {
-    title: "Product",
-    links: ["Features", "Contact"],
+    title: 'Product',
+    links: ['Features', 'Contact'],
   },
-] as const;
+] as const
 
 const FIGMA_ASSETS = {
-  hero: "/figma/landing/hero.jpg",
-  cta: "/figma/landing/cta.jpg",
-  logo: "/figma/landing/logo.png",
-  dashboard: "/figma/landing/CarbX Dashboard.jpg",
-  details: "/figma/landing/CarbX details page.jpg",
-} as const;
-
-const landingButtonClassName =
-  "h-[45px] rounded-full border border-[#023b3b] px-5 text-[16px] font-medium tracking-[-0.032px] text-white shadow-[0_1px_2px_rgba(23,75,75,0.48),0_0_0_1px_#0e4545] hover:brightness-95";
-
-const landingButtonStyle = {
-  backgroundImage:
-    "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgb(2,59,59) 0%, rgb(2,59,59) 100%)",
-} as const;
+  hero: '/figma/landing/hero.jpg',
+  cta: '/figma/landing/cta.jpg',
+  logo: '/figma/landing/logo.png',
+  dashboard: '/figma/landing/CarbX Dashboard.jpg',
+  details: '/figma/landing/CarbX details page.jpg',
+} as const
 
 export function LoginPage() {
-  const { authenticated, ready, login } = usePrivy();
+  const { authenticated, ready, login } = usePrivy()
 
   if (ready && authenticated) {
-    return <Navigate replace to={ROUTE_PATHS.tokenize} />;
+    return <Navigate replace to={ROUTE_PATHS.marketplace} />
   }
 
   function openPrivyAuth() {
     void login({
-      loginMethods: ["wallet", "email", "google"],
-      walletChainType: "solana-only",
-    });
+      loginMethods: ['wallet', 'email', 'google'],
+      walletChainType: 'solana-only',
+    })
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#1f2c2e]">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#e8ecec] bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-[12px] lg:px-[90px]">
-          <div className="flex items-center gap-1 select-none">
-          <img
-            alt="CarbX logo"
-            className="h-[50px] w-[60px] object-contain mix-blend-multiply"
-            src={FIGMA_ASSETS.logo}
-          />
-            <span className="text-[36px] font-medium leading-[36px] tracking-[0.12px] text-[#1e1e1e]">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-3 lg:px-10">
+          <div className="flex items-center gap-2 select-none">
+            <img
+              alt="CarbX logo"
+              className="h-9 w-9 object-contain mix-blend-multiply"
+              src={FIGMA_ASSETS.logo}
+            />
+            <span className="text-2xl font-bold tracking-tight text-foreground">
               CarbX
             </span>
           </div>
@@ -70,7 +61,7 @@ export function LoginPage() {
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.label}
-                className="text-[18px] font-normal leading-[1.5] tracking-[0.06px] text-[#525866] no-underline transition-colors hover:text-[#173237]"
+                className="text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
                 href={item.href}
               >
                 {item.label}
@@ -78,128 +69,129 @@ export function LoginPage() {
             ))}
           </nav>
 
-          <Button
-            className={`${landingButtonClassName} w-[170px]`}
-            style={landingButtonStyle}
-            disabled={!ready}
-            onClick={openPrivyAuth}
-          >
-            Get Started
-          </Button>
+          <PrimaryCta disabled={!ready} onClick={openPrivyAuth}>
+            Get started
+          </PrimaryCta>
         </div>
       </header>
 
-      <main className="pb-0 pt-[88px]">
+      <main className="pb-0 pt-20">
         <section
-          className="mx-auto flex w-full max-w-[1260px] flex-col items-center px-6 pt-4 text-center lg:px-[90px]"
+          className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-12 text-center lg:px-10"
           id="hero"
         >
-          <div className="max-w-[862px]">
-            <h1 className="m-0 text-[44px] font-semibold leading-[1.15] tracking-[-0.06em] text-[#023b3b] sm:text-[64px] lg:text-[72px]">
-              Buy Carbon Removal
+          <div className="max-w-3xl">
+            <h1 className="m-0 text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              Buy carbon removal
               <br />
-              You Can Trust
+              you can trust
             </h1>
-            <p className="mx-auto mt-4 max-w-[520px] text-[13px] leading-6 text-[#525866] sm:text-[16px]">
-              Tailored portfolios, backed by Audited-Ready Data
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              Tailored portfolios, backed by audit-ready data.
             </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <PrimaryCta disabled={!ready} onClick={openPrivyAuth}>
+                Get started
+              </PrimaryCta>
+              <SecondaryCta href="#buyers">Learn more</SecondaryCta>
+            </div>
           </div>
 
-          <HeroLandscape className="mt-8 w-full max-w-[1100px]" />
+          <HeroLandscape className="mt-12 w-full max-w-5xl" />
         </section>
 
         <section
-          className="mx-auto mt-[88px] w-full max-w-[1200px] scroll-mt-[120px] px-6"
+          className="mx-auto mt-24 w-full max-w-6xl scroll-mt-24 px-6"
           id="suppliers"
         >
           <SectionIntro
-            description="We help you curate a carbon removal portfolio that aligns with your sustainability priorities whether you focus on technology type, geography, or co-benefits for local communities."
-            title="Portfolio Tailored To Your Needs"
+            description="We help you curate a carbon removal portfolio that aligns with your sustainability priorities — whether you focus on technology type, geography, or co-benefits for local communities."
+            title="Portfolio tailored to your needs"
           />
           <MarketplacePreview />
         </section>
 
         <section
-          className="mx-auto mt-[88px] w-full max-w-[1200px] scroll-mt-[120px] px-6"
+          className="mx-auto mt-24 w-full max-w-6xl scroll-mt-24 px-6"
           id="buyers"
         >
           <SectionIntro
-            description="We ensure that every credit is fully traceable, backed by independent third-party verification and certification, ensuring real climate impact and compliance readiness."
-            title="Carbon Removal Credits You Can Trust"
+            description="Every credit is fully traceable, backed by independent third-party verification and certification — ensuring real climate impact and compliance readiness."
+            title="Carbon removal credits you can trust"
           />
           <DetailPreview />
 
-          <div className="mt-8 flex justify-center">
-            <Button
-              className={`${landingButtonClassName} w-[193px]`}
-              disabled={!ready}
-              onClick={openPrivyAuth}
-              style={landingButtonStyle}
-            >
+          <div className="mt-10 flex justify-center">
+            <PrimaryCta disabled={!ready} onClick={openPrivyAuth}>
               Talk to our team
-            </Button>
+            </PrimaryCta>
           </div>
         </section>
 
         <section
-          className="mx-auto mt-[84px] w-full max-w-[1440px] scroll-mt-[120px] px-0 "
+          className="mx-auto mt-24 w-full max-w-7xl scroll-mt-24 px-0"
           id="resources"
         >
-          <div className="relative overflow-hidden px-6 py-[120px] text-center text-white">
+          <div className="relative overflow-hidden px-6 py-24 text-center text-white sm:rounded-2xl sm:mx-6">
             <CtaLandscape />
-            <div className="relative z-10 mx-auto max-w-[1018px]">
-              <h2 className="m-0 text-[46px] font-semibold leading-[1.12] tracking-[-0.05em] sm:text-[64px] lg:text-[72px]">
-                Carbon Removal You
+            <div className="relative z-10 mx-auto max-w-3xl">
+              <h2 className="m-0 text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+                Carbon removal you
                 <br />
-                Can Trust
+                can trust
               </h2>
-              <p className="mx-auto mt-4 max-w-[658px] text-[18px] leading-8 text-[#e5e5e5] sm:text-[20px]">
+              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
                 Talk to our carbon removal experts to design a portfolio that
                 meets your needs.
               </p>
-              <Button
-                className={`${landingButtonClassName} mt-6 w-[193px] border-white/70`}
-                disabled={!ready}
-                onClick={openPrivyAuth}
-                style={landingButtonStyle}
-              >
-                Get Started Today
-              </Button>
+              <div className="mt-7 flex justify-center">
+                <button
+                  type="button"
+                  disabled={!ready}
+                  onClick={openPrivyAuth}
+                  className="inline-flex items-center justify-center rounded-md border border-white/30 bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-white/90 disabled:opacity-50"
+                >
+                  Get started today
+                </button>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="bg-[#eeeeee] pb-10" id="trust-infrastructure">
-        <div className="mx-auto grid w-full max-w-[1440px] items-start gap-6 px-6 py-4 md:grid-cols-[410px_203px_203px_384px] lg:px-[120px]">
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-[2.222px]">
+      <footer
+        className="mt-24 border-t border-border bg-card pb-10"
+        id="trust-infrastructure"
+      >
+        <div className="mx-auto grid w-full max-w-7xl items-start gap-6 px-6 py-8 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)] lg:px-10">
+          <div className="px-2">
+            <div className="flex items-center gap-2">
               <img
                 alt="CarbX logo"
-                className="h-[30.044px] w-[33.333px] object-contain mix-blend-multiply"
+                className="h-8 w-8 object-contain mix-blend-multiply"
                 src={FIGMA_ASSETS.logo}
               />
-              <span className="text-[20px] font-medium leading-5 tracking-[0.06px] text-[#1e1e1e]">
+              <span className="text-xl font-bold tracking-tight text-foreground">
                 CarbX
               </span>
             </div>
-            <p className="mt-3 max-w-[378px] text-[14px] leading-[1.7] tracking-[0.042px] text-[#525866]">
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               At CarbX, we build trust throughout the carbon removal journey
-              with our rigorous, data-driven approach, ensuring unmatched
-              quality and reliability of carbon removal.
+              with a rigorous, data-driven approach — ensuring unmatched
+              quality and reliability of every credit.
             </p>
           </div>
 
           {FOOTER_COLUMNS.map((column) => (
-            <div key={column.title} className="px-4 py-4">
-              <h3 className="m-0 text-[20px] font-medium leading-[30px] tracking-[0.06px] text-[#292828]">
+            <div key={column.title} className="px-2">
+              <h3 className="m-0 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 {column.title}
               </h3>
-              <div className="mt-3 grid gap-3">
+              <div className="mt-3 grid gap-2">
                 {column.links.map((link) => (
                   <a
                     key={link}
-                    className="text-[16px] leading-[30px] tracking-[0.048px] text-[#525866] no-underline hover:text-[#173237]"
+                    className="text-sm text-foreground no-underline transition-colors hover:text-primary"
                     href="#"
                   >
                     {link}
@@ -209,49 +201,91 @@ export function LoginPage() {
             </div>
           ))}
 
-          <div className="px-4 py-4">
-            <h3 className="m-0 text-[20px] font-medium leading-[30px] tracking-[0.06px] text-[#292828]">
+          <div className="px-2">
+            <h3 className="m-0 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Newsletter
             </h3>
-            <div className="mt-3 flex items-center justify-between rounded-full border border-[#e2e4e9] bg-white py-[10px] pl-6 pr-3">
+            <form
+              onSubmit={(event) => event.preventDefault()}
+              className="mt-3 flex items-center gap-2 rounded-md border border-border-strong bg-background p-1 pl-3"
+            >
               <input
-                className="h-[45px] flex-1 border-0 bg-transparent pr-3 text-[14px] tracking-[0.042px] text-[#314044] outline-none placeholder:text-[#525866]"
-                placeholder="Email Address"
+                className="h-9 flex-1 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                placeholder="you@company.com"
                 type="email"
               />
-              <Button
-                className={`${landingButtonClassName} w-[117px] text-[14px]`}
-                disabled={!ready}
-                onClick={openPrivyAuth}
-                style={landingButtonStyle}
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Subscribe
-              </Button>
-            </div>
+              </button>
+            </form>
           </div>
+        </div>
+        <div className="mx-auto mt-4 max-w-7xl px-6 text-xs text-muted-foreground lg:px-10">
+          © {new Date().getFullYear()} CarbX. All rights reserved.
         </div>
       </footer>
     </div>
-  );
+  )
+}
+
+function PrimaryCta({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode
+  disabled?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+    >
+      {children}
+    </button>
+  )
+}
+
+function SecondaryCta({
+  children,
+  href,
+}: {
+  children: React.ReactNode
+  href: string
+}) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center justify-center rounded-md border border-border-strong bg-card px-5 py-2.5 text-sm font-semibold text-foreground no-underline transition-colors hover:bg-muted"
+    >
+      {children}
+    </a>
+  )
 }
 
 function SectionIntro({
   title,
   description,
 }: {
-  title: string;
-  description: string;
+  title: string
+  description: string
 }) {
   return (
-    <div className="mx-auto max-w-[934px] text-center">
-      <h2 className="m-0 text-[36px] font-semibold leading-[1.18] tracking-[-0.05em] text-[#2f3233] sm:text-[48px] lg:text-[56px]">
+    <div className="mx-auto max-w-3xl text-center">
+      <h2 className="m-0 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
         {title}
       </h2>
-      <p className="mx-auto mt-4 max-w-[844px] text-[13px] leading-6 text-[#525866] sm:text-[16px] sm:leading-8">
+      <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
         {description}
       </p>
     </div>
-  );
+  )
 }
 
 function HeroLandscape({ className }: { className?: string }) {
@@ -259,32 +293,32 @@ function HeroLandscape({ className }: { className?: string }) {
     <img
       alt="Tropical island landscape"
       className={[
-        "aspect-[2.053] w-full rounded-[20px] object-cover",
-        className ?? "",
-      ].join(" ")}
+        'aspect-[2.053] w-full rounded-2xl object-cover shadow-card',
+        className ?? '',
+      ].join(' ')}
       src={FIGMA_ASSETS.hero}
     />
-  );
+  )
 }
 
 function MarketplacePreview() {
   return (
     <img
       alt="CarbX dashboard preview"
-      className="block w-full rounded-[12px] object-cover mt-6"
+      className="mt-8 block w-full rounded-xl object-cover shadow-card"
       src={FIGMA_ASSETS.dashboard}
     />
-  );
+  )
 }
 
 function DetailPreview() {
   return (
     <img
       alt="CarbX details preview"
-      className="block w-full rounded-[12px] object-cover mt-6"
+      className="mt-8 block w-full rounded-xl object-cover shadow-card"
       src={FIGMA_ASSETS.details}
     />
-  );
+  )
 }
 
 function CtaLandscape() {
@@ -297,5 +331,5 @@ function CtaLandscape() {
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.35)_100%)]" />
     </>
-  );
+  )
 }
