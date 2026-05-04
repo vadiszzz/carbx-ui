@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/shared/ui/toast-provider'
 import { useUsdcBalanceQuery } from '@/shared/api/solana/queries/use-usdc-balance-query'
 import type { CreateRetirePayload } from '@/shared/api/retire/types'
+import { clampIntegerInput } from '@/shared/lib/numeric-input'
 import { EditListingDialog } from '@/pages/marketplace/components/edit-listing-dialog'
 import { MOCK_LISTINGS } from '@/pages/marketplace/lib/mock-listings'
 import { ListTokenDialog } from './components/list-token-dialog'
@@ -558,6 +559,17 @@ export function TokensPage() {
     return (vintageTokensQuery.data ?? []).find((t) => t.mint === editListing.vintageMint) ?? null
   }, [editListing, vintageTokensQuery.data])
 
+  const editListingMaxAmount = useMemo(() => {
+    if (!editListing) return 0
+
+    const walletBalance = Number(
+      (editListingToken?.tokenInfo as { balance?: unknown } | null | undefined)?.balance ?? 0
+    )
+    const listingBalance = Number(editListing.amountToSell)
+
+    return Math.max(0, walletBalance + listingBalance)
+  }, [editListing, editListingToken])
+
   const isFetching =
     vintageTokensQuery.isFetching ||
     registryMetaQuery.isFetching ||
@@ -651,11 +663,12 @@ export function TokensPage() {
             ? {
                 user: editListing.user,
                 amountToSell: editListing.amountToSell,
+                maxAmountToSell: editListingMaxAmount,
                 unitPrice: formatPrice(editListing.unitPrice),
               }
             : null
         }
-        onAmountChange={setEditAmount}
+        onAmountChange={(value) => setEditAmount(clampIntegerInput(value, editListingMaxAmount))}
         onClose={() => setEditListing(null)}
         onPriceChange={setEditPrice}
         onSubmit={() => void handleEditListingSubmit()}

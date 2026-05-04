@@ -9,6 +9,7 @@ import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit'
 import { registerPrivyAccessTokenResolver } from '@/shared/api/privy-access-token'
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID
+const mockAuth = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 const rpcUrl = import.meta.env.VITE_RPC_URL || 'https://api.devnet.solana.com'
 const solanaChain = getSolanaChain(rpcUrl)
 const walletChainType = 'solana-only' as const
@@ -43,6 +44,15 @@ const privyConfig: PrivyClientConfig = {
 }
 
 export function AppPrivyProvider({ children }: PropsWithChildren) {
+  if (mockAuth) {
+    return (
+      <>
+        <MockPrivyAccessTokenBridge />
+        {children}
+      </>
+    )
+  }
+
   if (!privyAppId) {
     throw new Error('Missing VITE_PRIVY_APP_ID. Add your Privy app ID to initialize auth.')
   }
@@ -53,6 +63,18 @@ export function AppPrivyProvider({ children }: PropsWithChildren) {
       {children}
     </PrivyProvider>
   )
+}
+
+function MockPrivyAccessTokenBridge() {
+  useEffect(() => {
+    registerPrivyAccessTokenResolver(async () => null)
+
+    return () => {
+      registerPrivyAccessTokenResolver(null)
+    }
+  }, [])
+
+  return null
 }
 
 function PrivyAccessTokenBridge() {

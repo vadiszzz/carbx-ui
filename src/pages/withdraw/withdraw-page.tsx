@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -8,21 +8,48 @@ import {
   Loader2,
   Wallet,
 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePrivy } from '@privy-io/react-auth'
+import { useSignAndSendTransaction } from '@privy-io/react-auth/solana'
+import { Connection, PublicKey } from '@solana/web3.js'
+import bs58 from 'bs58'
+import { qist_puro } from 'qist-puro-sdk'
+import { AccountId } from 'qist-puro-sdk/lib/qist-puro/functions/getters/getSpecificAccounts'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
+import { usePuroAccountQuery } from '@/shared/api/puro/queries/use-puro-account-query'
+import { fetchSponsoredTransaction } from '@/shared/api/sponsored-transaction/requests'
+import { SPONSORED_TX_TYPES } from '@/shared/api/sponsored-transaction/types'
 import { useUsdcBalanceQuery } from '@/shared/api/solana/queries/use-usdc-balance-query'
+import { QUERY_KEYS } from '@/shared/constants/query-keys'
+import {
+  CONFIG_PUBKEY,
+  MINTER_PDA,
+  RPC_URL,
+  SOLANA_CHAIN,
+} from '@/shared/constants/solana'
 import {
   formatVintageTokenAmount,
+  getVintageTokens,
   type VintageToken,
 } from '@/shared/lib/vintage-tokens'
-import { isValidSolanaAddress } from '@/shared/lib/solana'
+import {
+  base64ToBytes,
+  isValidSolanaAddress,
+  parseLocalizedNumber,
+  parseUiAmountToAtomic,
+  waitForTransactionConfirmation,
+} from '@/shared/lib/solana'
 import { useToast } from '@/shared/ui/toast-provider'
-import { MOCK_HOLDINGS } from '@/pages/tokens/lib/mock-holdings'
+import {
+  MOCK_HOLDINGS,
+  MOCK_REGISTRY_META,
+} from '@/pages/tokens/lib/mock-holdings'
 import {
   detectProjectType,
   extractVintage,
   formatProjectName,
 } from '@/pages/marketplace/lib/listing-meta'
+import type { VintageRegistryMeta } from '@/pages/tokens/model'
 
 const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 
@@ -42,6 +69,57 @@ const TABS: { value: WithdrawMode; label: string; description: string }[] = [
     description: 'Withdraw your balance to a bank account or external wallet.',
   },
 ]
+
+async function fetchVintageRegistryMeta(
+  connection: Connection
+): Promise<VintageRegistryMeta[]> {
+  if (MOCK_AUTH) return MOCK_REGISTRY_META
+
+  const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
+    AccountId.VintageRegistry,
+    connection
+  )
+
+  return rawAccounts
+    .map((rawAccount) => {
+      const account =
+        rawAccount && typeof rawAccount === 'object' && 'account' in rawAccount
+          ? (rawAccount as { account?: unknown }).account
+          : rawAccount
+
+      if (!account || typeof account !== 'object') return null
+
+      const tokenMintRaw = (account as { tokenMint?: unknown }).tokenMint
+      const tokenMint =
+        tokenMintRaw instanceof PublicKey
+          ? tokenMintRaw.toBase58()
+          : typeof tokenMintRaw === 'string'
+            ? tokenMintRaw
+            : null
+
+      const companyIdRaw = (account as { companyId?: unknown }).companyId
+      const yearRaw = (account as { year?: unknown }).year
+
+      const companyIdBytes = Array.isArray(companyIdRaw)
+        ? companyIdRaw
+        : companyIdRaw instanceof Uint8Array
+          ? Array.from(companyIdRaw)
+          : null
+
+      const year = typeof yearRaw === 'number' ? yearRaw : null
+
+      if (!tokenMint || !companyIdBytes || !year) return null
+
+      const companyId32 = qist_puro.helpers
+        .decodeFixedBytes(companyIdBytes)
+        .replaceAll(String.fromCharCode(0), '')
+
+      if (!companyId32) return null
+
+      return { tokenMint, companyId32, year } satisfies VintageRegistryMeta
+    })
+    .filter((item): item is VintageRegistryMeta => item !== null)
+}
 
 export function WithdrawPage() {
   const [mode, setMode] = useState<WithdrawMode>('credits')
@@ -95,7 +173,36 @@ function ModeSwitcher({
 }
 
 function CreditsWithdraw() {
-  const holdings = MOCK_HOLDINGS
+  const { connectWallet } = usePrivy()
+  const { connectedWallet, hasSolanaWallet, walletAddress } = usePrivyAuth()
+  const { signAndSendTransaction } = useSignAndSendTransaction()
+  const { showToast, updateToast } = useToast()
+  const queryClient = useQueryClient()
+  const puroAccountQuery = usePuroAccountQuery()
+  const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), [])
+  const publicKey = walletAddress && !MOCK_AUTH ? new PublicKey(walletAddress) : null
+
+  const holdingsQuery = useQuery<VintageToken[], Error>({
+    queryKey: ['tokens', 'vintage', walletAddress],
+    queryFn: () => {
+      if (MOCK_AUTH) return Promise.resolve(MOCK_HOLDINGS)
+
+      return getVintageTokens({
+        ownerAddress: walletAddress ?? '',
+        rpcUrl: RPC_URL,
+        minterPda: MINTER_PDA,
+      })
+    },
+    enabled: Boolean(walletAddress),
+  })
+
+  const registryMetaQuery = useQuery<VintageRegistryMeta[], Error>({
+    queryKey: ['tokens', 'vintage-registry'],
+    queryFn: () => fetchVintageRegistryMeta(connection),
+    enabled: Boolean(walletAddress),
+  })
+
+  const holdings = useMemo(() => holdingsQuery.data ?? [], [holdingsQuery.data])
   const [destination, setDestination] = useState<CreditDestination>('puro')
   const [selectedMint, setSelectedMint] = useState<string>(
     holdings[0]?.mint ?? ''
@@ -103,7 +210,6 @@ function CreditsWithdraw() {
   const [amount, setAmount] = useState('')
   const [recipient, setRecipient] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { showToast } = useToast()
 
   const selectedHolding = useMemo<VintageToken | null>(
     () => holdings.find((h) => h.mint === selectedMint) ?? null,
@@ -117,6 +223,110 @@ function CreditsWithdraw() {
     destination === 'puro' ? true : isValidSolanaAddress(recipient.trim())
   const canSubmit =
     !!selectedHolding && amountNum > 0 && !exceedsAvailable && recipientValid
+
+  useEffect(() => {
+    if (!selectedMint && holdings[0]?.mint) {
+      setSelectedMint(holdings[0].mint)
+    }
+  }, [holdings, selectedMint])
+
+  if (!hasSolanaWallet) {
+    return (
+      <Notice
+        title="Link a Solana wallet"
+        description="Credits are held and withdrawn from your linked Solana wallet."
+        ctaLabel={
+          <span className="inline-flex items-center gap-2">
+            <Wallet className="size-4" /> Link wallet
+          </span>
+        }
+        onClick={() => connectWallet({ walletChainType: 'solana-only' })}
+      />
+    )
+  }
+
+  if (holdingsQuery.isLoading) {
+    return (
+      <Section
+        title="Loading credits"
+        description="Fetching the credits available in your connected wallet."
+      >
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Loading wallet holdings...
+        </div>
+      </Section>
+    )
+  }
+
+  if (holdingsQuery.isError) {
+    return (
+      <Section
+        title="Couldn’t load credits"
+        description={holdingsQuery.error.message}
+      >
+        <button
+          type="button"
+          onClick={() => void holdingsQuery.refetch()}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <RotateArrowIcon />
+          Retry
+        </button>
+      </Section>
+    )
+  }
+
+  async function sendSponsoredTransaction(input: {
+    txType:
+      | typeof SPONSORED_TX_TYPES.BURN_VINTAGE
+      | typeof SPONSORED_TX_TYPES.TRANSFER_TOKEN
+    amount: number
+    puroUserUuid?: string
+    tokenMint?: string
+    recipient?: string
+    registry?: string
+  }) {
+    if (!publicKey) {
+      throw new Error('Wallet is not connected')
+    }
+
+    if (!connectedWallet) {
+      throw new Error('No connected Privy wallet found')
+    }
+
+    const sponsoredTx = await fetchSponsoredTransaction({
+      txType: input.txType,
+      user: publicKey.toBase58(),
+      amount: input.amount,
+      puroUserUuid: input.puroUserUuid,
+      tokenMint: input.tokenMint,
+      recipient: input.recipient,
+      registry: input.registry,
+    })
+
+    if (sponsoredTx.errorMessage) {
+      throw new Error(sponsoredTx.errorMessage)
+    }
+
+    if (!sponsoredTx.tx) {
+      throw new Error('Sponsored transaction payload is empty')
+    }
+
+    const signatureResult = await signAndSendTransaction({
+      transaction: base64ToBytes(sponsoredTx.tx),
+      wallet: connectedWallet,
+      chain: SOLANA_CHAIN,
+      options: {
+        skipPreflight: true,
+      },
+    })
+
+    const signature = bs58.encode(signatureResult.signature)
+    await waitForTransactionConfirmation(connection, signature)
+
+    return signature
+  }
 
   if (holdings.length === 0) {
     return (
@@ -132,8 +342,9 @@ function CreditsWithdraw() {
     )
   }
 
-  function handleSubmit() {
-    if (!canSubmit) return
+  async function handleSubmit() {
+    if (!canSubmit || !selectedHolding) return
+
     if (MOCK_AUTH) {
       setIsSubmitting(true)
       window.setTimeout(() => {
@@ -146,11 +357,122 @@ function CreditsWithdraw() {
       }, 600)
       return
     }
-    showToast({
+
+    if (!publicKey) {
+      showToast({ type: 'error', text: 'Wallet is not connected', durationMs: 5000 })
+      return
+    }
+
+    setIsSubmitting(true)
+    const toastId = showToast({
       type: 'info',
-      text: 'Withdrawal flow not yet wired to backend.',
-      durationMs: 5000,
+      text:
+        destination === 'puro'
+          ? 'Building detokenize transaction...'
+          : 'Building withdraw transaction...',
     })
+
+    try {
+      if (destination === 'wallet') {
+        const trimmedRecipient = recipient.trim()
+        if (!isValidSolanaAddress(trimmedRecipient)) {
+          throw new Error('Recipient must be a valid Solana address')
+        }
+
+        const decimals =
+          typeof selectedHolding.tokenInfo?.decimals === 'number'
+            ? selectedHolding.tokenInfo.decimals
+            : 0
+
+        const atomicAmount = parseUiAmountToAtomic(amount, decimals)
+        if (atomicAmount <= 0) {
+          throw new Error('Amount must be greater than zero')
+        }
+
+        const availableBalance = selectedHolding.tokenInfo?.balance
+        if (
+          typeof availableBalance === 'number' &&
+          Number.isFinite(availableBalance) &&
+          atomicAmount > availableBalance
+        ) {
+          throw new Error('Amount exceeds available token balance')
+        }
+
+        updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+        const signature = await sendSponsoredTransaction({
+          txType: SPONSORED_TX_TYPES.TRANSFER_TOKEN,
+          amount: atomicAmount,
+          tokenMint: selectedHolding.mint,
+          recipient: trimmedRecipient,
+        })
+
+        updateToast(toastId, {
+          type: 'success',
+          text: 'Withdraw transaction confirmed',
+          signature,
+          durationMs: 6000,
+        })
+      } else {
+        let detokenizeAmount: number
+        try {
+          detokenizeAmount = parseLocalizedNumber(amount)
+        } catch {
+          detokenizeAmount = Number.NaN
+        }
+
+        if (!Number.isFinite(detokenizeAmount) || detokenizeAmount <= 0) {
+          throw new Error('Amount must be a positive number')
+        }
+
+        if (detokenizeAmount > available) {
+          throw new Error('Amount exceeds available token balance')
+        }
+
+        const registryMeta = (registryMetaQuery.data ?? []).find(
+          (registry) => registry.tokenMint === selectedHolding.mint
+        )
+        if (!registryMeta) {
+          throw new Error('Registry data for selected token was not found')
+        }
+
+        const puroAccountResult = await puroAccountQuery.refetch()
+        const puroAccountNumber = puroAccountResult.data?.puroAccountNumber?.trim() ?? ''
+        if (!puroAccountNumber) {
+          throw new Error('Puro destination account was not found')
+        }
+
+        const registry = qist_puro.helpers.findRegistryPda(
+          CONFIG_PUBKEY,
+          registryMeta.companyId32,
+          registryMeta.year
+        )
+
+        updateToast(toastId, { type: 'info', text: 'Sending transaction...' })
+        const signature = await sendSponsoredTransaction({
+          txType: SPONSORED_TX_TYPES.BURN_VINTAGE,
+          amount: detokenizeAmount,
+          puroUserUuid: puroAccountNumber,
+          registry: registry.toBase58(),
+        })
+
+        updateToast(toastId, {
+          type: 'success',
+          text: 'Detokenize transaction confirmed',
+          signature,
+          durationMs: 6000,
+        })
+      }
+
+      setAmount('')
+      setRecipient('')
+      await holdingsQuery.refetch()
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PURO_ACCOUNT })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Withdrawal failed'
+      updateToast(toastId, { type: 'error', text: message, durationMs: 7000 })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -287,7 +609,7 @@ function CreditsWithdraw() {
         <button
           type="button"
           disabled={!canSubmit || isSubmitting}
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting ? (
@@ -501,6 +823,52 @@ function Label({ children }: { children: React.ReactNode }) {
     <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
     </label>
+  )
+}
+
+function Notice({
+  title,
+  description,
+  ctaLabel,
+  onClick,
+}: {
+  title: string
+  description: string
+  ctaLabel: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      <button
+        type="button"
+        onClick={onClick}
+        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        {ctaLabel}
+      </button>
+    </div>
+  )
+}
+
+function RotateArrowIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 2v6h-6" />
+      <path d="M3 11a9 9 0 0 1 15.55-5.36L21 8" />
+      <path d="M3 22v-6h6" />
+      <path d="M21 13a9 9 0 0 1-15.55 5.36L3 16" />
+    </svg>
   )
 }
 

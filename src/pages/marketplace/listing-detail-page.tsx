@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Loader2, MapPin, Minus, Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -23,6 +23,10 @@ import {
   parseLocalizedNumber,
   waitForTransactionConfirmation,
 } from '@/shared/lib/solana'
+import {
+  clampIntegerInput,
+  clampIntegerValue,
+} from '@/shared/lib/numeric-input'
 import {
   formatSolanaAddressShort,
   getSolscanTokenUrl,
@@ -188,8 +192,15 @@ export function ListingDetailPage() {
   const total = subtotal + fee
   const aboveAvailable = amountNum > available
 
+  useEffect(() => {
+    const clamped = clampIntegerInput(amount, available)
+    if (clamped !== amount) {
+      setAmount(clamped)
+    }
+  }, [amount, available])
+
   function adjust(delta: number) {
-    const next = Math.max(0, amountNum + delta)
+    const next = clampIntegerValue(amountNum + delta, available)
     setAmount(String(next))
   }
 
@@ -436,7 +447,9 @@ export function ListingDetailPage() {
                 <input
                   inputMode="numeric"
                   value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
+                  onChange={(event) =>
+                    setAmount(clampIntegerInput(event.target.value, available))
+                  }
                   disabled={isBuying}
                   className="num flex-1 bg-transparent py-2.5 text-center text-base font-semibold text-foreground outline-none"
                 />

@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog'
 import type { VintageToken } from '@/shared/lib/vintage-tokens'
+import { clampIntegerInput } from '@/shared/lib/numeric-input'
 import {
   detectProjectType,
   extractVintage,
@@ -18,6 +19,7 @@ type EditListingDialogProps = {
     user: string
     amountToSell: string
     unitPrice: string
+    maxAmountToSell: number
   } | null
   token: VintageToken | null
   amount: string
@@ -72,7 +74,11 @@ export function EditListingDialog({
             <input
               inputMode="numeric"
               value={amount}
-              onChange={(event) => onAmountChange(event.target.value)}
+              onChange={(event) =>
+                onAmountChange(
+                  clampIntegerInput(event.target.value, listing?.maxAmountToSell ?? 0)
+                )
+              }
               placeholder={listing?.amountToSell ?? '0'}
               disabled={isSubmitting}
               className="num w-full rounded-lg border border-border-strong bg-card px-3 py-2.5 text-base font-semibold text-foreground outline-none focus:border-primary"

@@ -14,6 +14,10 @@ import {
   extractVintage,
   formatProjectName,
 } from '@/pages/marketplace/lib/listing-meta'
+import {
+  clampIntegerInput,
+  clampIntegerValue,
+} from '@/shared/lib/numeric-input'
 
 type ListTokenDialogProps = {
   token: VintageToken | null
@@ -48,7 +52,7 @@ export function ListTokenDialog({
   const total = amountNum * priceNum
 
   function adjust(delta: number) {
-    const next = Math.max(0, amountNum + delta)
+    const next = clampIntegerValue(amountNum + delta, available)
     onAmountChange(String(next))
   }
 
@@ -87,7 +91,7 @@ export function ListTokenDialog({
             <input
               inputMode="numeric"
               value={amount}
-              onChange={(event) => onAmountChange(event.target.value)}
+              onChange={(event) => onAmountChange(clampIntegerInput(event.target.value, available))}
               disabled={isSubmitting}
               className="num flex-1 bg-transparent py-2.5 text-center text-base font-semibold text-foreground outline-none"
             />

@@ -10,6 +10,10 @@ import {
   type VintageToken,
 } from '@/shared/lib/vintage-tokens'
 import {
+  clampIntegerInput,
+  clampIntegerValue,
+} from '@/shared/lib/numeric-input'
+import {
   detectProjectType,
   extractVintage,
   formatProjectName,
@@ -50,7 +54,7 @@ export function RetireTokenDialog({
   const vintage = extractVintage(token?.name)
 
   function adjust(delta: number) {
-    const next = Math.max(0, amountNum + delta)
+    const next = clampIntegerValue(amountNum + delta, available)
     onAmountChange(String(next))
   }
 
@@ -92,7 +96,7 @@ export function RetireTokenDialog({
             <input
               inputMode="numeric"
               value={amount}
-              onChange={(event) => onAmountChange(event.target.value)}
+              onChange={(event) => onAmountChange(clampIntegerInput(event.target.value, available))}
               disabled={isSubmitting}
               className="num flex-1 bg-transparent py-2.5 text-center text-base font-semibold text-foreground outline-none"
             />
