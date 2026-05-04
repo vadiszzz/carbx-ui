@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js'
 
-const DEFAULT_MINTER_PDA = 'Dccf2hLZmCDsQypSTYab2E4rbDday4SEEYBV8KTiPMX'
-const DEFAULT_CONFIG_PUBKEY = 'CLNJGG3sZ8cxuveemDw9D1tk18q3QCWLWAAwpXumPVY8'
+const DEFAULT_MINTER_PDA = '2iFDwLBrzJB5kjWZ44rtTSY9NNmJmzRMRcLWgwrMFntt'
+const DEFAULT_CONFIG_PUBKEY = 'DycUiFgnChfddHwoHY6ququUjRdhXJae2h3aUaP6QRAf'
 const DEFAULT_USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
 export const MINTER_PDA = import.meta.env.VITE_MINTER_PDA ?? DEFAULT_MINTER_PDA
