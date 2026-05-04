@@ -14,6 +14,10 @@ import { WithdrawPage } from '@/pages/withdraw'
 
 export const appRouter = createBrowserRouter([
   {
+    path: ROUTE_PATHS.home,
+    element: <LoginPage />,
+  },
+  {
     path: ROUTE_PATHS.login,
     element: <LoginPage />,
   },
