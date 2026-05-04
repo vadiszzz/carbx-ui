@@ -7,9 +7,9 @@ import {
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana'
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit'
 import { registerPrivyAccessTokenResolver } from '@/shared/api/privy-access-token'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID
-const mockAuth = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 const rpcUrl = import.meta.env.VITE_RPC_URL || 'https://api.devnet.solana.com'
 const solanaChain = getSolanaChain(rpcUrl)
 const walletChainType = 'solana-only' as const
@@ -44,7 +44,7 @@ const privyConfig: PrivyClientConfig = {
 }
 
 export function AppPrivyProvider({ children }: PropsWithChildren) {
-  if (mockAuth) {
+  if (DEMO_MODE) {
     return (
       <>
         <MockPrivyAccessTokenBridge />

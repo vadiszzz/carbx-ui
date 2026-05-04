@@ -15,10 +15,10 @@ import { Link } from 'react-router-dom'
 import { usePrivy } from '@privy-io/react-auth'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { usePuroAccountQuery } from '@/shared/api/puro/queries/use-puro-account-query'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { ROUTE_PATHS } from '@/app/router/route-paths'
 import { OnramperOnrampDialog } from '@/shared/onramper/ui/onramper-onramp-dialog'
 
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 const MOCK_PURO_ACCOUNT = '45724d88-8755-481b-851a-9a94df76b77f'
 const PURO_REGISTRY_URL = 'https://mypuro.purouat.com'
 
@@ -97,18 +97,18 @@ function CreditsDeposit() {
   const puroAccountQuery = usePuroAccountQuery()
 
   const realAccount = puroAccountQuery.data?.puroAccountNumber ?? ''
-  const puroAccountNumber = MOCK_AUTH
+  const puroAccountNumber = DEMO_MODE
     ? mockCreated
       ? MOCK_PURO_ACCOUNT
       : ''
     : realAccount
   const hasPuroAccount = Boolean(puroAccountNumber)
-  const isCreating = MOCK_AUTH ? mockCreating : puroAccountQuery.isFetching
+  const isCreating = DEMO_MODE ? mockCreating : puroAccountQuery.isFetching
 
   const ready = authenticated && hasSolanaWallet
 
   async function handleCreateAccount() {
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       setMockCreating(true)
       await new Promise((resolve) => setTimeout(resolve, 800))
       setMockCreated(true)
@@ -180,7 +180,7 @@ function CreditsDeposit() {
                 </>
               )}
             </button>
-            {puroAccountQuery.isError && !MOCK_AUTH && (
+            {puroAccountQuery.isError && !DEMO_MODE && (
               <p className="mt-2 text-sm text-destructive">
                 Couldn't create the account. Try again.
               </p>

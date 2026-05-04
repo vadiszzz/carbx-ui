@@ -5,6 +5,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useQueryClient } from '@tanstack/react-query'
 import { ROUTE_PATHS } from '@/app/router/route-paths'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 
 const navigationItems = [
   { to: ROUTE_PATHS.marketplace, label: 'Marketplace' },
@@ -32,6 +33,14 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
+        {DEMO_MODE && (
+          <div className="border-b border-amber-200 bg-amber-50 text-amber-900">
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-2 text-xs font-medium">
+              <span>Demo mode is on. Listings, holdings, account data, and cash-onramp flows use mock data.</span>
+              <span>No live blockchain or backend transactions are sent.</span>
+            </div>
+          </div>
+        )}
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-6">
           <div className="flex items-center gap-10">
             <NavLink

@@ -38,7 +38,7 @@ export function ListingCard({
   const gradient = gradientForType(type)
 
   const baseClass =
-    'group relative flex flex-col overflow-hidden rounded-xl bg-card transition-shadow'
+    'group relative flex h-full flex-col overflow-hidden rounded-xl bg-card transition-shadow'
   const borderClass = isMine
     ? 'shadow-[0_0_0_2px_var(--primary)]'
     : 'shadow-card hover:shadow-md'
@@ -60,20 +60,21 @@ export function ListingCard({
       </div>
 
       <div className="flex flex-1 flex-col p-3">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
+        <h3 className="min-h-[2.5rem] line-clamp-2 text-sm font-semibold leading-tight text-foreground">
           {projectName}
         </h3>
 
         {location && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="mt-1 min-h-4 flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="size-3" />
             {location}
             {vintage && <span> · {vintage}</span>}
           </div>
         )}
         {!location && vintage && (
-          <div className="mt-1 text-xs text-muted-foreground">Vintage {vintage}</div>
+          <div className="mt-1 min-h-4 text-xs text-muted-foreground">Vintage {vintage}</div>
         )}
+        {!location && !vintage && <div className="mt-1 min-h-4" />}
 
         <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
           <div>
@@ -91,7 +92,7 @@ export function ListingCard({
         </div>
 
         {isMine && onEdit && onClose ? (
-          <div className="mt-3 grid grid-cols-2 gap-1.5">
+          <div className="mt-auto pt-3 grid grid-cols-2 gap-1.5">
             <button
               type="button"
               onClick={onEdit}
@@ -110,14 +111,16 @@ export function ListingCard({
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={onView}
-            disabled={disabled}
-            className="mt-3 w-full rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            View
-          </button>
+          <div className="mt-auto pt-3">
+            <button
+              type="button"
+              onClick={onView}
+              disabled={disabled}
+              className="w-full rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              View
+            </button>
+          </div>
         )}
       </div>
     </article>

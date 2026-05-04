@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Connection, PublicKey } from '@solana/web3.js'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import { RPC_URL, USDC_MINT } from '@/shared/constants/solana'
-
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 
 export function useUsdcBalanceQuery(walletAddress?: string) {
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), [])
@@ -12,7 +11,7 @@ export function useUsdcBalanceQuery(walletAddress?: string) {
   return useQuery({
     queryKey: QUERY_KEYS.USDC_BALANCE(walletAddress),
     queryFn: async () => {
-      if (MOCK_AUTH) return 164.26
+      if (DEMO_MODE) return 164.26
 
       if (!walletAddress) {
         throw new Error('Wallet address is undefined')

@@ -7,6 +7,7 @@ import {
 import { useOnramperDefaultsQuery } from '@/shared/api/onramper/queries/use-onramper-defaults-query'
 import { useOnramperPaymentTypesQuery } from '@/shared/api/onramper/queries/use-onramper-payment-types-query'
 import type { OnramperQuote } from '@/shared/api/onramper/types'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { getApiErrorMessage } from '@/shared/lib/api-errors'
 import { parseLocalizedNumber } from '@/shared/lib/solana'
 import { Button } from '@/shared/ui/button'
@@ -256,6 +257,16 @@ export function OnramperOnrampDialog({
         redirectUrl: window.location.href,
       })
 
+      if (DEMO_MODE) {
+        showToast({
+          type: 'info',
+          text: 'Demo mode: checkout is simulated only. No external payment session was created.',
+          durationMs: 5000,
+        })
+        onClose()
+        return
+      }
+
       window.open(checkout.checkoutUrl, '_blank', 'noopener,noreferrer')
       onClose()
     } catch (error) {
@@ -275,7 +286,9 @@ export function OnramperOnrampDialog({
         <DialogHeader>
           <DialogTitle>Top up wallet with Onramper</DialogTitle>
           <DialogDescription className="text-slate-700">
-            Compare live onramp quotes and continue to the selected provider checkout.
+            {DEMO_MODE
+              ? 'Preview a mocked fiat-to-USDC checkout flow. Quotes and checkout are simulated for demo use.'
+              : 'Compare live onramp quotes and continue to the selected provider checkout.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -479,7 +492,9 @@ export function OnramperOnrampDialog({
                 <div className="rounded-[22px] border border-dashed border-slate-300 bg-slate-50/70 p-6 text-sm text-slate-600">
                   {isLoadingQuotes
                     ? 'Loading quotes...'
-                    : 'Set the amount, choose a payment method, and request live quotes.'}
+                    : DEMO_MODE
+                      ? 'Set the amount, choose a payment method, and load simulated quotes.'
+                      : 'Set the amount, choose a payment method, and request live quotes.'}
                 </div>
               )}
             </div>
@@ -505,7 +520,7 @@ export function OnramperOnrampDialog({
               </>
             ) : (
               <>
-                Continue to Provider
+                {DEMO_MODE ? 'Preview Checkout' : 'Continue to Provider'}
                 <ExternalLink className="size-4" />
               </>
             )}

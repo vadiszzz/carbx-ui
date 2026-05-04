@@ -20,6 +20,7 @@ import { usePuroAccountQuery } from '@/shared/api/puro/queries/use-puro-account-
 import { fetchSponsoredTransaction } from '@/shared/api/sponsored-transaction/requests'
 import { SPONSORED_TX_TYPES } from '@/shared/api/sponsored-transaction/types'
 import { useUsdcBalanceQuery } from '@/shared/api/solana/queries/use-usdc-balance-query'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import {
   CONFIG_PUBKEY,
@@ -51,8 +52,6 @@ import {
 } from '@/pages/marketplace/lib/listing-meta'
 import type { VintageRegistryMeta } from '@/pages/tokens/model'
 
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
-
 type WithdrawMode = 'credits' | 'cash'
 type CreditDestination = 'puro' | 'wallet'
 
@@ -73,7 +72,7 @@ const TABS: { value: WithdrawMode; label: string; description: string }[] = [
 async function fetchVintageRegistryMeta(
   connection: Connection
 ): Promise<VintageRegistryMeta[]> {
-  if (MOCK_AUTH) return MOCK_REGISTRY_META
+  if (DEMO_MODE) return MOCK_REGISTRY_META
 
   const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
     AccountId.VintageRegistry,
@@ -180,12 +179,12 @@ function CreditsWithdraw() {
   const queryClient = useQueryClient()
   const puroAccountQuery = usePuroAccountQuery()
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), [])
-  const publicKey = walletAddress && !MOCK_AUTH ? new PublicKey(walletAddress) : null
+  const publicKey = walletAddress && !DEMO_MODE ? new PublicKey(walletAddress) : null
 
   const holdingsQuery = useQuery<VintageToken[], Error>({
     queryKey: ['tokens', 'vintage', walletAddress],
     queryFn: () => {
-      if (MOCK_AUTH) return Promise.resolve(MOCK_HOLDINGS)
+      if (DEMO_MODE) return Promise.resolve(MOCK_HOLDINGS)
 
       return getVintageTokens({
         ownerAddress: walletAddress ?? '',
@@ -345,7 +344,7 @@ function CreditsWithdraw() {
   async function handleSubmit() {
     if (!canSubmit || !selectedHolding) return
 
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       setIsSubmitting(true)
       window.setTimeout(() => {
         setIsSubmitting(false)

@@ -7,6 +7,7 @@ import { qist_puro } from 'qist-puro-sdk'
 import { AccountId } from 'qist-puro-sdk/lib/qist-puro/functions/getters/getSpecificAccounts'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { listingDetailPath } from '@/app/router/route-paths'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { RPC_URL } from '@/shared/constants/solana'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import {
@@ -36,8 +37,6 @@ type MarketplaceRow = {
 }
 
 const USDC_DECIMALS = 1_000_000
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
-
 function formatPrice(unitPrice: string) {
   const asNumber = Number(unitPrice)
   if (!Number.isFinite(asNumber)) return unitPrice
@@ -48,7 +47,7 @@ function formatPrice(unitPrice: string) {
 }
 
 async function fetchMarketplaceListings(): Promise<ListingAccount[]> {
-  if (MOCK_AUTH) return MOCK_LISTINGS
+  if (DEMO_MODE) return MOCK_LISTINGS
 
   const connection = new Connection(RPC_URL, 'confirmed')
   const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
@@ -85,7 +84,7 @@ export function MarketplacePage() {
       listingsQuery.data?.map((item) => item.vintageMint).join(',') ?? '',
     ],
     queryFn: () => {
-      if (MOCK_AUTH) return Promise.resolve(MOCK_TOKENS)
+      if (DEMO_MODE) return Promise.resolve(MOCK_TOKENS)
 
       return getVintageTokensByMints({
         mints: (listingsQuery.data ?? []).map((item) => item.vintageMint),
@@ -167,7 +166,7 @@ export function MarketplacePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {rows.map(({ listing, token }) => {
             const isMine = Boolean(walletAddress && listing.user === walletAddress)
-            const location = MOCK_AUTH ? MOCK_LOCATIONS[listing.vintageMint] ?? null : null
+            const location = DEMO_MODE ? MOCK_LOCATIONS[listing.vintageMint] ?? null : null
 
             return (
               <ListingCard
@@ -208,4 +207,3 @@ function ListingsSkeleton() {
     </div>
   )
 }
-

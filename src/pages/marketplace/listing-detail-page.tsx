@@ -12,6 +12,7 @@ import { fetchSponsoredTransaction } from '@/shared/api/sponsored-transaction/re
 import { SPONSORED_TX_TYPES } from '@/shared/api/sponsored-transaction/types'
 import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { ROUTE_PATHS } from '@/app/router/route-paths'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import {
   RPC_URL,
   SOLANA_CHAIN,
@@ -63,7 +64,6 @@ type ListingAccount = {
 const USDC_DECIMALS = 1_000_000
 const FEE_RATE = 0.025
 const QUICK_FRACTIONS = [0.25, 0.5, 0.75, 1] as const
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 
 function formatPrice(unitPrice: string) {
   const asNumber = Number(unitPrice)
@@ -75,7 +75,7 @@ function formatPrice(unitPrice: string) {
 }
 
 async function fetchMarketplaceListings(): Promise<ListingAccount[]> {
-  if (MOCK_AUTH) return MOCK_LISTINGS
+  if (DEMO_MODE) return MOCK_LISTINGS
 
   const connection = new Connection(RPC_URL, 'confirmed')
   const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
@@ -125,7 +125,7 @@ export function ListingDetailPage() {
       listingsQuery.data?.map((item) => item.vintageMint).join(',') ?? '',
     ],
     queryFn: () => {
-      if (MOCK_AUTH) return Promise.resolve(MOCK_TOKENS)
+      if (DEMO_MODE) return Promise.resolve(MOCK_TOKENS)
 
       return getVintageTokensByMints({
         mints: (listingsQuery.data ?? []).map((item) => item.vintageMint),
@@ -179,8 +179,8 @@ export function ListingDetailPage() {
   const type = detectProjectType(token?.name)
   const vintage = extractVintage(token?.name)
   const gradient = gradientForType(type)
-  const location = MOCK_AUTH ? MOCK_LOCATIONS[listing.vintageMint] ?? null : null
-  const detail = MOCK_AUTH ? MOCK_PROJECT_DETAILS[listing.vintageMint] ?? null : null
+  const location = DEMO_MODE ? MOCK_LOCATIONS[listing.vintageMint] ?? null : null
+  const detail = DEMO_MODE ? MOCK_PROJECT_DETAILS[listing.vintageMint] ?? null : null
   const isMine = Boolean(walletAddress && listing.user === walletAddress)
   const formattedPrice = formatPrice(listing.unitPrice)
 
@@ -207,7 +207,7 @@ export function ListingDetailPage() {
   async function handleBuySubmit() {
     if (!listing) return
 
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       showToast({
         type: 'info',
         text: 'Mock mode: real buy disabled. Wire backend to enable.',
@@ -511,7 +511,7 @@ export function ListingDetailPage() {
               >
                 This is your own listing. Manage it in Portfolio &rsaquo;
               </Link>
-            ) : !connectedWallet && !MOCK_AUTH ? (
+            ) : !connectedWallet && !DEMO_MODE ? (
               <button
                 type="button"
                 onClick={() => connectWallet({ walletChainType: 'solana-only' })}

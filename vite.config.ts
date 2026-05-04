@@ -7,7 +7,8 @@ import inject from '@rollup/plugin-inject'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const useMockAuth = env.VITE_DEV_MOCK_AUTH === 'true'
+  const useMockAuth =
+    env.VITE_DEV_MOCK_AUTH === 'true' || env.VITE_DEMO_MODE === 'true'
 
   return {
     plugins: [react(), tailwindcss()],

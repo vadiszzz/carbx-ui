@@ -11,6 +11,7 @@ import { usePrivyAuth } from '@/shared/auth/hooks/use-privy-auth'
 import { createRetire } from '@/shared/api/retire/requests'
 import { fetchSponsoredTransaction } from '@/shared/api/sponsored-transaction/requests'
 import { SPONSORED_TX_TYPES } from '@/shared/api/sponsored-transaction/types'
+import { DEMO_MODE } from '@/shared/config/demo-mode'
 import { QUERY_KEYS } from '@/shared/constants/query-keys'
 import {
   CONFIG_PUBKEY,
@@ -57,7 +58,6 @@ type ListingAccount = {
 }
 
 const USDC_DECIMALS = 1_000_000
-const MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true'
 
 function formatPrice(unitPrice: string) {
   const asNumber = Number(unitPrice)
@@ -69,7 +69,7 @@ function formatPrice(unitPrice: string) {
 }
 
 async function fetchMarketplaceListings(): Promise<ListingAccount[]> {
-  if (MOCK_AUTH) return MOCK_LISTINGS
+  if (DEMO_MODE) return MOCK_LISTINGS
 
   const connection = new Connection(RPC_URL, 'confirmed')
   const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
@@ -99,12 +99,12 @@ export function TokensPage() {
   const { showToast, updateToast } = useToast()
 
   const ownerAddress = walletAddress
-  const publicKey = ownerAddress && !MOCK_AUTH ? new PublicKey(ownerAddress) : null
+  const publicKey = ownerAddress && !DEMO_MODE ? new PublicKey(ownerAddress) : null
 
   const vintageTokensQuery = useQuery<VintageToken[], Error>({
     queryKey: ['tokens', 'vintage', ownerAddress],
     queryFn: () => {
-      if (MOCK_AUTH) return Promise.resolve(MOCK_HOLDINGS)
+      if (DEMO_MODE) return Promise.resolve(MOCK_HOLDINGS)
       return getVintageTokens({
         ownerAddress: ownerAddress ?? '',
         rpcUrl: RPC_URL,
@@ -123,7 +123,7 @@ export function TokensPage() {
   const registryMetaQuery = useQuery<VintageRegistryMeta[], Error>({
     queryKey: ['tokens', 'vintage-registry'],
     queryFn: async () => {
-      if (MOCK_AUTH) return MOCK_REGISTRY_META
+      if (DEMO_MODE) return MOCK_REGISTRY_META
 
       const rawAccounts = await qist_puro.functions.getters.getSpecificAccounts(
         qist_puro.functions.getters.AccountId.VintageRegistry,
@@ -286,7 +286,7 @@ export function TokensPage() {
   async function handleListSubmit() {
     if (!listToken) return
 
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       showToast({
         type: 'info',
         text: 'Mock mode: real list disabled. Wire backend to enable.',
@@ -380,7 +380,7 @@ export function TokensPage() {
   async function handleRetireSubmit() {
     if (!retireToken) return
 
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       showToast({
         type: 'info',
         text: 'Mock mode: real retire disabled. Wire backend to enable.',
@@ -477,7 +477,7 @@ export function TokensPage() {
   async function handleEditListingSubmit() {
     if (!editListing) return
 
-    if (MOCK_AUTH) {
+    if (DEMO_MODE) {
       showToast({
         type: 'info',
         text: 'Mock mode: real edit disabled. Wire backend to enable.',
